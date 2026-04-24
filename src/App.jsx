@@ -5,10 +5,10 @@ import { useDarkMode, cx, badgeToneFor } from './lib/utils';
 import { MENU } from './lib/menu';
 import { Badge, DiamondLogo, Card, Field, Input, Button } from './components/UI';
 import { CheckInPage, ResourcesPage, ProfessionalsPage, ProviderJoinPage } from './pages/ClientViews';
-import { AdminPage, ClientsPage, CRNPage } from './pages/AdminViews';
+import { AdminPage, ClientsPage, CRNPage, ReportsPage } from './pages/AdminViews';
 import { 
   LogsPage, SysDashPage, IntegrationPage, 
-  ReportsPage, RegressionPage, SettingsPage,
+  RegressionPage, SettingsPage,
   UsersPage, ModuleAccessPage, SiteMapPage,
   SuperAdminPage, OfficesPage, HeatMapPage
 } from './pages/SystemViews';
