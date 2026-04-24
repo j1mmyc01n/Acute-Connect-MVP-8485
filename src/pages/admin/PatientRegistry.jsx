@@ -19,11 +19,15 @@ const Toast = ({ msg, onClose }) => (
 
 export default function PatientRegistry() {
   const [clients, setClients] = useState([]);
+  const [centres, setCentres] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ name: '', phone: '', email: '', support_category: 'general', care_centre: '' });
   const [toast, setToast] = useState('');
 
-  useEffect(() => { fetchClients(); }, []);
+  useEffect(() => {
+    fetchClients();
+    fetchCentres();
+  }, []);
 
   const fetchClients = async () => {
     setLoading(true);
@@ -32,48 +36,49 @@ export default function PatientRegistry() {
     setLoading(false);
   };
 
+  const fetchCentres = async () => {
+    const { data, error } = await supabase.from('care_centres_1777090000').select('*').order('name');
+    if (!error && data) setCentres(data);
+  };
+
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
 
   const handleCreate = async () => {
     if (!form.name) return alert('Name is required.');
     const crn = generateCRN();
     await supabase.from('crns_1740395000').insert([{ code: crn, is_active: true }]);
-    await supabase.from('clients_1777020684735').insert([{ 
-      ...form, 
-      crn,
-      status: 'active'
+    const { error } = await supabase.from('clients_1777020684735').insert([{
+      ...form, crn, status: 'active', care_centre: form.care_centre || null
     }]);
-    showToast(`Patient registered and added to CRM — CRN: ${crn}`);
-    setForm({ name: '', phone: '', email: '', support_category: 'general', care_centre: '' });
-    fetchClients();
+    if (!error) {
+      showToast(`Patient registered — CRN: ${crn}`);
+      setForm({ name: '', phone: '', email: '', support_category: 'general', care_centre: '' });
+      fetchClients();
+    } else { alert(error.message); }
   };
 
   const categories = ['general', 'crisis', 'mental_health', 'substance_abuse', 'housing'];
-  const centres = ['Main Campus', 'North Clinic', 'Camperdown Medical'];
+  const centreOptions = centres.length > 0
+    ? [{ value: '', label: '-- Select Care Centre --' }, ...centres.map(c => ({ value: c.name, label: c.name }))]
+    : [{ value: '', label: '-- No Care Centres in DB --' }];
 
   return (
     <div className="ac-stack">
       {toast && <Toast msg={toast} onClose={() => setToast('')} />}
       <h1 className="ac-h1">Patient Registry</h1>
-      
+
       <div className="ac-grid-2" style={{ gap: 24 }}>
         <Card title="Register New Patient">
           <div className="ac-stack">
-            <p className="ac-muted ac-xs">This form will automatically generate a CRN and add the patient to the CRM system.</p>
-            <Field label="Full Name *">
-              <Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="John Doe" />
-            </Field>
-            <Field label="Email">
-              <Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="john@example.com" />
-            </Field>
-            <Field label="Phone">
-              <Input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="+61 400 000 000" />
-            </Field>
+            <p className="ac-muted ac-xs">Auto-generates a CRN and adds the patient to the CRM.</p>
+            <Field label="Full Name *"><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="John Doe" /></Field>
+            <Field label="Email"><Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="john@example.com" /></Field>
+            <Field label="Phone"><Input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="+61 400 000 000" /></Field>
             <Field label="Support Category">
               <Select value={form.support_category} onChange={e => setForm({ ...form, support_category: e.target.value })} options={categories} />
             </Field>
             <Field label="Care Centre">
-              <Select value={form.care_centre} onChange={e => setForm({ ...form, care_centre: e.target.value })} options={['', ...centres]} />
+              <Select value={form.care_centre} onChange={e => setForm({ ...form, care_centre: e.target.value })} options={centreOptions} />
             </Field>
             <Button icon={FiUserPlus} onClick={handleCreate} style={{ marginTop: 8 }}>Register & Add to CRM</Button>
           </div>
@@ -87,10 +92,15 @@ export default function PatientRegistry() {
                   <span style={{ fontWeight: 600 }}>{c.name}</span>
                   <Badge tone="violet">{c.crn}</Badge>
                 </div>
-                <div className="ac-xs ac-muted">{c.support_category || 'general'} • {c.care_centre || 'Not assigned'}</div>
+                <div className="ac-xs ac-muted">
+                  {c.support_category || 'general'} •{' '}
+                  {c.care_centre
+                    ? <span style={{ color: 'var(--ac-success)', fontWeight: 600 }}>{c.care_centre}</span>
+                    : 'Not assigned'}
+                </div>
               </div>
             ))}
-            {clients.length === 0 && <p className="ac-muted">No patients registered yet.</p>}
+            {!loading && clients.length === 0 && <p className="ac-muted">No patients registered yet.</p>}
           </div>
         </Card>
       </div>
