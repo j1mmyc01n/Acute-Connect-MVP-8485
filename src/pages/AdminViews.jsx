@@ -40,6 +40,8 @@ export const AdminPage = () => {
   const [newCRN, setNewCRN] = useState('');
   const [generatingCRN, setGeneratingCRN] = useState(false);
   const [toast, setToast] = useState('');
+  const [convertModal, setConvertModal] = useState(null);
+  const [convertForm, setConvertForm] = useState({ name: '', phone: '', email: '' });
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -63,6 +65,23 @@ export const AdminPage = () => {
     if (!error) { setNewCRN(code); showToast(`CRN ${code} generated successfully!`); fetchAll(); }
     else alert(error.message);
     setGeneratingCRN(false);
+  };
+
+  const handleConvertCheckin = async () => {
+    if (!convertForm.name) return alert('Name is required');
+    const { error } = await supabase.from('clients_1777020684735').insert([{ 
+      name: convertForm.name, 
+      email: convertForm.email, 
+      phone: convertForm.phone,
+      crn: convertModal.crn 
+    }]);
+    if (!error) {
+      showToast('Client profile linked securely.');
+      setConvertModal(null);
+      fetchAll();
+    } else {
+      alert(error.message);
+    }
   };
 
   const pending = checkins.filter(c => c.status === 'pending').length;
@@ -145,7 +164,15 @@ export const AdminPage = () => {
                 return (
                   <tr key={c.id}>
                     <td className="ac-mono" style={{ fontWeight: 600, fontSize: 12 }}>{c.crn}</td>
-                    <td>{client?.name || <span className="ac-muted">Unlinked</span>}</td>
+                    <td>
+                      {client ? (
+                        client.name
+                      ) : (
+                        <Button variant="outline" style={{ padding: '6px 10px', fontSize: 11 }} onClick={() => { setConvertForm({name:'', phone:'', email:''}); setConvertModal(c); }}>
+                          Convert to Patient
+                        </Button>
+                      )}
+                    </td>
                     <td>
                       <Badge tone={c.mood <= 3 ? 'red' : c.mood <= 6 ? 'amber' : 'green'}>{c.mood}/10</Badge>
                     </td>
@@ -158,6 +185,21 @@ export const AdminPage = () => {
           </table>
         </div>
       </Card>
+
+      {convertModal && (
+        <ModalOverlay title="Convert to Patient" onClose={() => setConvertModal(null)}>
+          <div className="ac-stack">
+            <p className="ac-muted ac-xs">Link CRN <strong className="ac-mono">{convertModal.crn}</strong> securely to a new patient profile.</p>
+            <Field label="Full Name"><Input value={convertForm.name} onChange={e => setConvertForm({...convertForm, name: e.target.value})} /></Field>
+            <Field label="Email"><Input type="email" value={convertForm.email} onChange={e => setConvertForm({...convertForm, email: e.target.value})} /></Field>
+            <Field label="Phone"><Input value={convertForm.phone} onChange={e => setConvertForm({...convertForm, phone: e.target.value})} /></Field>
+            <div className="ac-grid-2" style={{ marginTop: 8 }}>
+              <Button variant="outline" onClick={() => setConvertModal(null)}>Cancel</Button>
+              <Button onClick={handleConvertCheckin}>Create Patient Profile</Button>
+            </div>
+          </div>
+        </ModalOverlay>
+      )}
     </div>
   );
 };
@@ -410,6 +452,58 @@ export const CrisisPage = () => {
           </div>
         </ModalOverlay>
       )}
+    </div>
+  );
+};
+
+/* ─── INVOICING & BILLING ───────────────────────────────────────── */
+export const InvoicingPage = () => {
+  const [invoices] = useState([
+    { id: 'INV-1001', provider: 'Camperdown Medical', amount: '$4,200', status: 'pending', date: '2023-10-01' },
+    { id: 'INV-1002', provider: 'Newtown Support Center', amount: '$1,850', status: 'paid', date: '2023-09-28' },
+    { id: 'INV-1003', provider: 'Dr. Smith (Unit 4)', amount: '$3,100', status: 'pending', date: '2023-10-02' },
+  ]);
+
+  return (
+    <div className="ac-stack">
+      <div className="ac-flex-between">
+        <h1 className="ac-h1">Invoicing & Billing</h1>
+        <Button icon={FiDownload}>Export for Billing Agency</Button>
+      </div>
+      <div className="ac-grid-3">
+        <div className="ac-stat-tile">
+          <div className="ac-muted ac-xs">Total Outstanding</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ac-warn)' }}>$7,300</div>
+        </div>
+        <div className="ac-stat-tile">
+          <div className="ac-muted ac-xs">Paid This Month</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ac-success)' }}>$12,450</div>
+        </div>
+        <div className="ac-stat-tile">
+          <div className="ac-muted ac-xs">Active Providers</div>
+          <div style={{ fontSize: 28, fontWeight: 800 }}>8</div>
+        </div>
+      </div>
+      <Card title="Recent Invoices">
+        <div className="ac-table-container">
+          <table className="ac-table">
+            <thead>
+              <tr><th>Invoice ID</th><th>Provider / Care Centre</th><th>Date</th><th>Amount</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              {invoices.map(inv => (
+                <tr key={inv.id}>
+                  <td className="ac-mono" style={{ fontWeight: 600 }}>{inv.id}</td>
+                  <td>{inv.provider}</td>
+                  <td className="ac-muted ac-xs">{inv.date}</td>
+                  <td style={{ fontWeight: 600 }}>{inv.amount}</td>
+                  <td><Badge tone={inv.status === 'paid' ? 'green' : 'amber'}>{inv.status.toUpperCase()}</Badge></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
     </div>
   );
 };

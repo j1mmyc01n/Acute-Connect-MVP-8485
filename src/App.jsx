@@ -5,7 +5,7 @@ import { useDarkMode, cx, badgeToneFor } from './lib/utils';
 import { MENU } from './lib/menu';
 import { Badge, DiamondLogo, Card, Field, Input, Button } from './components/UI';
 import { CheckInPage, ResourcesPage, ProfessionalsPage, ProviderJoinPage } from './pages/ClientViews';
-import { AdminPage, ClientsPage, CRNPage, ReportsPage, CRMPage, CrisisPage } from './pages/AdminViews';
+import { AdminPage, ClientsPage, CRNPage, ReportsPage, CRMPage, CrisisPage, InvoicingPage } from './pages/AdminViews';
 import {
   LogsPage, SysDashPage, IntegrationPage,
   RegressionPage, SettingsPage,
@@ -30,6 +30,7 @@ const PageRenderer = ({ id, goto, onLoginIntent }) => {
     case 'clients':       return <ClientsPage />;
     case 'crn':           return <CRNPage />;
     case 'reports':       return <ReportsPage />;
+    case 'invoicing':     return <InvoicingPage />;
     case 'crm':           return <CRMPage />;
     case 'crisis':        return <CrisisPage />;
 

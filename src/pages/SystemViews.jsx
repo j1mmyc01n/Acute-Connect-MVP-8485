@@ -34,26 +34,70 @@ const ModalOverlay = ({ title, onClose, children }) => (
   </div>
 );
 
-/* ─── SYSTEM DASHBOARD ───────────────────────────────────────────── */
+/* ─── SYSTEM DASHBOARD WITH SUPPORT GAUGES & PROVIDER TRACKING ────── */
 export const SysDashPage = () => {
   return (
     <div className="ac-stack">
       <h1 className="ac-h1">System Dashboard</h1>
+      
       <div className="ac-grid-3">
-        <div className="ac-stat-tile">
-          <div className="ac-muted ac-xs">Active Sessions</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ac-success)' }}>124</div>
-        </div>
-        <div className="ac-stat-tile">
-          <div className="ac-muted ac-xs">Daily Check-ins</div>
-          <div style={{ fontSize: 28, fontWeight: 800 }}>87</div>
-        </div>
-        <div className="ac-stat-tile">
-          <div className="ac-muted ac-xs">System Status</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ac-success)' }}>Nominal</div>
-        </div>
+        <Card title="Support Stations Connectivity">
+          <div className="ac-stack-sm" style={{ marginTop: 8 }}>
+            <div className="ac-flex-between">
+              <span className="ac-sm">Camperdown Node</span>
+              <Badge tone="green">99%</Badge>
+            </div>
+            <div className="ac-progress"><div className="ac-progress-bar" style={{ width: '99%' }}/></div>
+            
+            <div className="ac-flex-between" style={{ marginTop: 8 }}>
+              <span className="ac-sm">Newtown Database</span>
+              <Badge tone="amber">76%</Badge>
+            </div>
+            <div className="ac-progress"><div className="ac-progress-bar" style={{ width: '76%', background: 'var(--ac-warn)' }}/></div>
+            
+            <div className="ac-flex-between" style={{ marginTop: 8 }}>
+              <span className="ac-sm">Central Hub Data</span>
+              <Badge tone="green">100%</Badge>
+            </div>
+            <div className="ac-progress"><div className="ac-progress-bar" style={{ width: '100%' }}/></div>
+          </div>
+        </Card>
+
+        <Card title="Provider Leads & Audits">
+          <div className="ac-stack-sm">
+            <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--ac-primary)' }}>142</div>
+            <div className="ac-muted ac-xs">Provider Registrations (YTD)</div>
+            <div className="ac-divider"/>
+            <div className="ac-flex-between">
+              <span className="ac-sm">Converted</span>
+              <span style={{ fontWeight: 600 }}>89</span>
+            </div>
+            <div className="ac-flex-between">
+              <span className="ac-sm">Pending Audit</span>
+              <span style={{ fontWeight: 600 }}>53</span>
+            </div>
+          </div>
+        </Card>
+
+        <Card title="System Status">
+          <div className="ac-stack-sm">
+             <div className="ac-flex-between">
+              <span className="ac-sm">API Gateway</span>
+              <Badge tone="green">Online</Badge>
+            </div>
+            <div className="ac-flex-between">
+              <span className="ac-sm">Auth Services</span>
+              <Badge tone="green">Online</Badge>
+            </div>
+            <div className="ac-flex-between">
+              <span className="ac-sm">Analytics Engine</span>
+              <Badge tone="green">Online</Badge>
+            </div>
+          </div>
+        </Card>
       </div>
-      <Card title="Traffic Overview">
+
+      <Card title="Daily Traffic Overview">
         <div style={{ height: 200, display: 'flex', alignItems: 'flex-end', gap: 8, padding: '20px 0' }}>
           {[40, 60, 30, 80, 50, 90, 70].map((h, i) => (
             <div key={i} style={{ flex: 1, background: 'var(--ac-primary)', height: `${h}%`, borderRadius: '4px 4px 0 0', opacity: 0.8 }} />
@@ -201,62 +245,90 @@ export const UsersPage = () => {
   );
 };
 
-/* ─── HEATMAP ────────────────────────────────────────────────────── */
-export const HeatMapPage = () => (
-  <div className="ac-stack">
-    <h1 className="ac-h1">City Heat Map & Dispatch</h1>
-    <div className="ac-grid-2" style={{ gridTemplateColumns: '3fr 1fr' }}>
-      <Card style={{ padding: 0, overflow: 'hidden', height: 600, position: 'relative' }}>
-        <iframe
-          title="Heat Map"
-          src="https://www.openstreetmap.org/export/embed.html?bbox=151.16%2C-33.91%2C151.21%2C-33.86&layer=mapnik"
-          width="100%" height="100%"
-          style={{ border: 0, filter: 'var(--ac-map-filter)', display: 'block' }}
-          loading="lazy"
-        />
-        <div style={{ position: 'absolute', top: '40%', left: '30%', background: 'var(--ac-primary)', padding: '4px 8px', borderRadius: 20, color: '#fff', fontSize: 12, fontWeight: 600, boxShadow: '0 2px 5px rgba(0,0,0,0.3)' }}>
-          🚔 Unit 4 (Dr. Smith)
+/* ─── HEATMAP WITH AI INSIGHTS ──────────────────────────────────── */
+export const HeatMapPage = () => {
+  const [aiInsight, setAiInsight] = useState(false);
+
+  return (
+    <div className="ac-stack">
+      <div className="ac-flex-between">
+        <h1 className="ac-h1">City Heat Map & Dispatch</h1>
+        <Button variant="outline" icon={FiRefreshCw} onClick={() => setAiInsight(true)}>Run AI Analysis</Button>
+      </div>
+      
+      {aiInsight && (
+        <div style={{ background: 'var(--ac-primary-soft)', border: '1px solid var(--ac-primary)', padding: 16, borderRadius: 12, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+          <SafeIcon icon={FiActivity} style={{ color: 'var(--ac-primary)', marginTop: 2 }} />
+          <div>
+            <div style={{ fontWeight: 700, color: 'var(--ac-primary)', marginBottom: 4 }}>AI Predictive Insight generated at {new Date().toLocaleTimeString()}</div>
+            <div className="ac-sm" style={{ color: 'var(--ac-text)' }}>
+              Historical data patterns indicate a <strong>78% probability</strong> of a crisis spike in the <strong>Camperdown</strong> sector between 22:00 and 02:00. 
+              Recommendation: Pre-deploy 1 Ambulance and 1 Support Staff to the Newtown staging area.
+            </div>
+          </div>
+          <Button size="sm" style={{ whiteSpace: 'nowrap', marginLeft: 'auto', padding: '6px 12px' }}>Deploy Units</Button>
         </div>
-        <div style={{ position: 'absolute', top: '60%', left: '50%', background: 'var(--ac-success)', padding: '4px 8px', borderRadius: 20, color: '#fff', fontSize: 12, fontWeight: 600, boxShadow: '0 2px 5px rgba(0,0,0,0.3)' }}>
-          🚑 Med 1 (Available)
-        </div>
-        <div style={{ position: 'absolute', top: '50%', left: '45%', width: 100, height: 100, background: 'radial-gradient(circle, rgba(255,0,0,0.5) 0%, rgba(255,0,0,0) 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
-      </Card>
+      )}
+
       <div className="ac-stack">
-        <Card title="Active Hot Zones">
-          <div className="ac-stack-sm">
-            <div className="ac-flex-between">
-              <span className="ac-sm" style={{ fontWeight: 600 }}>Camperdown Center</span>
-              <Badge tone="red">High</Badge>
-            </div>
-            <div className="ac-flex-between">
-              <span className="ac-sm" style={{ fontWeight: 600 }}>Newtown Station</span>
-              <Badge tone="amber">Medium</Badge>
-            </div>
-          </div>
-        </Card>
-        <Card title="Admin Locality">
-          <div className="ac-stack-sm">
-            <div className="ac-flex-between">
-              <div>
-                <div className="ac-sm" style={{ fontWeight: 600 }}>Dr. Smith</div>
-                <div className="ac-xs ac-muted">Unit 4 • 2 mins away</div>
-              </div>
-              <Badge tone="blue">Dispatched</Badge>
-            </div>
-            <div className="ac-flex-between">
-              <div>
-                <div className="ac-sm" style={{ fontWeight: 600 }}>Paramedic Team</div>
-                <div className="ac-xs ac-muted">Med 1 • Available</div>
-              </div>
-              <Badge tone="green">Ready</Badge>
+        <Card style={{ padding: 0, overflow: 'hidden', height: 400, position: 'relative' }}>
+          <iframe
+            title="Heat Map"
+            src="https://www.openstreetmap.org/export/embed.html?bbox=151.16%2C-33.91%2C151.21%2C-33.86&layer=mapnik"
+            width="100%" height="100%"
+            style={{ border: 0, filter: 'var(--ac-map-filter)', display: 'block' }}
+            loading="lazy"
+          />
+          <div style={{ position: 'absolute', top: '40%', left: '30%', transform: 'translate(-50%, -50%)' }}>
+            <div style={{ background: 'var(--ac-primary)', padding: '4px 8px', borderRadius: 20, color: '#fff', fontSize: 12, fontWeight: 600, boxShadow: '0 2px 5px rgba(0,0,0,0.3)', whiteSpace: 'nowrap' }}>
+              🚔 Unit 4 (Dr. Smith)
             </div>
           </div>
+          <div style={{ position: 'absolute', top: '60%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+            <div style={{ background: 'var(--ac-success)', padding: '4px 8px', borderRadius: 20, color: '#fff', fontSize: 12, fontWeight: 600, boxShadow: '0 2px 5px rgba(0,0,0,0.3)', whiteSpace: 'nowrap' }}>
+              🚑 Med 1 (Available)
+            </div>
+          </div>
+          <div style={{ position: 'absolute', top: '50%', left: '45%', width: 120, height: 120, background: 'radial-gradient(circle, rgba(255,0,0,0.5) 0%, rgba(255,0,0,0) 70%)', borderRadius: '50%', pointerEvents: 'none', transform: 'translate(-50%, -50%)' }} />
         </Card>
+
+        <div className="ac-grid-2">
+          <Card title="Active Hot Zones">
+            <div className="ac-stack-sm">
+              <div className="ac-flex-between">
+                <span className="ac-sm" style={{ fontWeight: 600 }}>Camperdown Center</span>
+                <Badge tone="red">High</Badge>
+              </div>
+              <div className="ac-flex-between">
+                <span className="ac-sm" style={{ fontWeight: 600 }}>Newtown Station</span>
+                <Badge tone="amber">Medium</Badge>
+              </div>
+            </div>
+          </Card>
+          
+          <Card title="Admin Locality">
+            <div className="ac-stack-sm">
+              <div className="ac-flex-between">
+                <div>
+                  <div className="ac-sm" style={{ fontWeight: 600 }}>Dr. Smith</div>
+                  <div className="ac-xs ac-muted">Unit 4 • 2 mins away</div>
+                </div>
+                <Badge tone="blue">Dispatched</Badge>
+              </div>
+              <div className="ac-flex-between">
+                <div>
+                  <div className="ac-sm" style={{ fontWeight: 600 }}>Paramedic Team</div>
+                  <div className="ac-xs ac-muted">Med 1 • Available</div>
+                </div>
+                <Badge tone="green">Ready</Badge>
+              </div>
+            </div>
+          </Card>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 /* ─── OFFICES ────────────────────────────────────────────────────── */
 export const OfficesPage = () => {

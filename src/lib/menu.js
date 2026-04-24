@@ -23,6 +23,7 @@ export const MENU = [
       { id: "crm", label: "Client CRM", icon: FiUsers, badge: "Sync" },
       { id: "crisis", label: "Crisis Management", icon: FiAlertCircle, badge: "Alert" },
       { id: "clients", label: "Patient Registry", icon: FiUsers, badge: "Active" },
+      { id: "invoicing", label: "Invoicing & Billing", icon: FiFileText, badge: "Finance" },
       { id: "reports", label: "Reports", icon: FiBarChart2, badge: "Updated" },
       { id: "integrations", label: "Integrations", icon: FiZap, badge: "New" },
     ],
