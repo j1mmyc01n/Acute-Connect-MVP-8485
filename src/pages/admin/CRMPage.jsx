@@ -31,6 +31,7 @@ const ModalOverlay = ({ title, onClose, children }) => (
 
 export default function CRMPage() {
   const [clients, setClients] = useState([]);
+  const [centres, setCentres] = useState(['Main Campus', 'North Clinic', 'Camperdown Medical']);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState('');
   const [modalMode, setModalMode] = useState(null);
@@ -40,13 +41,21 @@ export default function CRMPage() {
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterCentre, setFilterCentre] = useState('all');
 
-  useEffect(() => { fetchClients(); }, []);
+  useEffect(() => { 
+    fetchClients(); 
+    fetchCentres();
+  }, []);
 
   const fetchClients = async () => {
     setLoading(true);
     const { data } = await supabase.from('clients_1777020684735').select('*').order('created_at', { ascending: false });
     setClients(data || []);
     setLoading(false);
+  };
+
+  const fetchCentres = async () => {
+    const { data } = await supabase.from('care_centres_1777090000').select('name');
+    if (data && data.length > 0) setCentres(data.map(d => d.name));
   };
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
@@ -101,7 +110,12 @@ export default function CRMPage() {
   });
 
   const categories = ['general', 'crisis', 'mental_health', 'substance_abuse', 'housing'];
-  const centres = ['Main Campus', 'North Clinic', 'Camperdown Medical'];
+  
+  // Create robust explicit dropdown options to ensure empty strings are selected correctly
+  const categoryOptions = categories.map(c => ({value: c, label: c.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}));
+  const filterCategoryOptions = [{value: 'all', label: 'All Categories'}, ...categoryOptions];
+  const centreOptions = [{value: '', label: '-- Select Care Centre --'}, ...centres.map(c => ({value: c, label: c}))];
+  const filterCentreOptions = [{value: 'all', label: 'All Centres'}, ...centres.map(c => ({value: c, label: c}))];
 
   return (
     <div className="ac-stack">
@@ -119,10 +133,10 @@ export default function CRMPage() {
 
       <div className="ac-grid-2" style={{ marginBottom: 16 }}>
         <Field label="Filter by Support Category">
-          <Select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} options={['all', ...categories]} />
+          <Select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} options={filterCategoryOptions} />
         </Field>
         <Field label="Filter by Care Centre">
-          <Select value={filterCentre} onChange={e => setFilterCentre(e.target.value)} options={['all', ...centres]} />
+          <Select value={filterCentre} onChange={e => setFilterCentre(e.target.value)} options={filterCentreOptions} />
         </Field>
       </div>
 
@@ -187,10 +201,10 @@ export default function CRMPage() {
             <Field label="Email"><Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="john@example.com" /></Field>
             <Field label="Phone"><Input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="+61 400 000 000" /></Field>
             <Field label="Support Category">
-              <Select value={form.support_category} onChange={e => setForm({ ...form, support_category: e.target.value })} options={categories} />
+              <Select value={form.support_category} onChange={e => setForm({ ...form, support_category: e.target.value })} options={categoryOptions} />
             </Field>
             <Field label="Care Centre">
-              <Select value={form.care_centre} onChange={e => setForm({ ...form, care_centre: e.target.value })} options={['', ...centres]} />
+              <Select value={form.care_centre || ''} onChange={e => setForm({ ...form, care_centre: e.target.value })} options={centreOptions} />
             </Field>
             <div className="ac-grid-2" style={{ marginTop: 8 }}>
               <Button variant="outline" onClick={() => setModalMode(null)}>Cancel</Button>
@@ -207,10 +221,10 @@ export default function CRMPage() {
             <Field label="Email"><Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></Field>
             <Field label="Phone"><Input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></Field>
             <Field label="Support Category">
-              <Select value={form.support_category} onChange={e => setForm({ ...form, support_category: e.target.value })} options={categories} />
+              <Select value={form.support_category} onChange={e => setForm({ ...form, support_category: e.target.value })} options={categoryOptions} />
             </Field>
             <Field label="Care Centre">
-              <Select value={form.care_centre} onChange={e => setForm({ ...form, care_centre: e.target.value })} options={['', ...centres]} />
+              <Select value={form.care_centre || ''} onChange={e => setForm({ ...form, care_centre: e.target.value })} options={centreOptions} />
             </Field>
             <div className="ac-grid-2" style={{ marginTop: 8 }}>
               <Button variant="outline" onClick={() => setModalMode(null)}>Cancel</Button>

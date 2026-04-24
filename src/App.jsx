@@ -80,7 +80,7 @@ const SmartMenu = ({ open, onClose, current, goto, role, onLogout }) => (
       <nav className="ac-drawer-nav">
         {MENU.filter(g => {
           if (g.group === 'SYSADMIN' && role !== 'sysadmin') return false;
-          if (g.group === 'ADMINISTRATOR' && !role) return false;
+          if (g.group === 'ADMIN' && !role) return false;
           return true;
         }).map(g => (
           <div key={g.group}>
