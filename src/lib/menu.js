@@ -4,7 +4,8 @@ const {
   FiClipboard, FiBookOpen, FiGrid, FiZap, FiUsers, FiHome, 
   FiBarChart2, FiSettings, FiUser, FiFileText, FiShield, 
   FiColumns, FiActivity, FiCpu, FiTerminal, FiMap, FiUserPlus,
-  FiMessageSquare, FiAlertCircle, FiUserMinus, FiPieChart, FiTrendingUp
+  FiMessageSquare, FiAlertCircle, FiUserMinus, FiPieChart, FiTrendingUp,
+  FiAward
 } = FiIcons;
 
 export const MENU = [
@@ -45,9 +46,10 @@ export const MENU = [
     ],
   },
   {
-    group: "PROVIDER",
+    group: "PROVIDER & PARTNERS",
     items: [
       { id: "join_provider", label: "Join as Provider", icon: FiUserPlus, badge: "$250/mo" },
+      { id: "join_sponsor", label: "Become a Sponsor", icon: FiAward, badge: "$15k" },
     ]
   }
 ];

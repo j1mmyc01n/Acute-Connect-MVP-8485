@@ -1,21 +1,41 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import * as FiIcons from 'react-icons/fi';
 import SafeIcon from '../common/SafeIcon';
 import { cx } from '../lib/utils';
 import { supabase } from '../supabase/supabase';
 import { generateCRN } from '../lib/utils';
-import { 
-  Tabs, Card, ProgressBar, Field, Input, 
-  Textarea, Button, Select, Badge, StatusBadge 
+import {
+  Tabs, Card, ProgressBar, Field, Input,
+  Textarea, Button, Select, Badge, StatusBadge
 } from '../components/UI';
 
-const { FiMapPin, FiPhone, FiShare2, FiFilter, FiUser, FiCreditCard, FiLoader, FiSend, FiCheckCircle, FiBell } = FiIcons;
+const {
+  FiMapPin, FiFilter, FiCreditCard, FiLoader, FiSend,
+  FiCheckCircle, FiBell, FiUpload, FiImage, FiStar,
+  FiShield, FiTrendingUp, FiUsers, FiZap, FiCheck,
+  FiArrowRight, FiHeart, FiAward, FiGlobe
+} = FiIcons;
 
 const RESOURCES = [
   { name: "Camperdown Mental Health Center", desc: "Primary mental health facility", addr: "96 Carillon Ave, Newtown NSW 2042", phone: "(02) 9515 9000", dist: "0.2 km" },
   { name: "RPA Hospital Emergency", desc: "24/7 emergency mental health services", addr: "Missenden Rd, Camperdown NSW 2050", phone: "(02) 9515 6111", dist: "0.5 km" },
   { name: "Headspace Camperdown", desc: "Youth mental health 12–25", addr: "Level 2, Brain and Mind Centre, 94 Mallett St", phone: "(02) 9114 4100", dist: "0.3 km" },
 ];
+
+/* ─── UTILITY: Smart banner text colour from hex ───────────────── */
+const getBannerTextColor = (hex) => {
+  try {
+    const c = hex.replace('#', '');
+    const r = parseInt(c.substring(0, 2), 16);
+    const g = parseInt(c.substring(2, 4), 16);
+    const b = parseInt(c.substring(4, 6), 16);
+    // WCAG relative luminance
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.55 ? '#1a1a1a' : '#ffffff';
+  } catch {
+    return '#ffffff';
+  }
+};
 
 /* ─── CRN REQUEST TAB ──────────────────────────────────────────── */
 export const CRNRequestPage = () => {
@@ -26,107 +46,43 @@ export const CRNRequestPage = () => {
   const [error, setError] = useState('');
 
   const handleSubmit = async () => {
-    if (!form.first_name || !form.mobile || !form.email) {
-      setError('Please fill in all required fields.');
-      return;
-    }
-    if (!/^\S+@\S+\.\S+$/.test(form.email)) {
-      setError('Please enter a valid email address.');
-      return;
-    }
-    setError('');
-    setLoading(true);
-
+    if (!form.first_name || !form.mobile || !form.email) { setError('Please fill in all required fields.'); return; }
+    if (!/^\S+@\S+\.\S+$/.test(form.email)) { setError('Please enter a valid email address.'); return; }
+    setError(''); setLoading(true);
     try {
       const crn = generateCRN();
-
-      // Insert into CRN requests table
-      const { error: reqErr } = await supabase.from('crn_requests_1777090006').insert([{
-        first_name: form.first_name,
-        mobile: form.mobile,
-        email: form.email,
-        status: 'processed',
-        crn_issued: crn
-      }]);
+      const { error: reqErr } = await supabase.from('crn_requests_1777090006').insert([{ first_name: form.first_name, mobile: form.mobile, email: form.email, status: 'processed', crn_issued: crn }]);
       if (reqErr) throw reqErr;
-
-      // Register in CRN pool
       await supabase.from('crns_1740395000').insert([{ code: crn, is_active: true }]);
-
-      // Push to Patient Registry
-      await supabase.from('clients_1777020684735').insert([{
-        name: form.first_name,
-        mobile: form.mobile,
-        email: form.email,
-        phone: form.mobile,
-        crn,
-        status: 'active',
-        support_category: 'general'
-      }]);
-
-      setIssuedCRN(crn);
-      setSubmitted(true);
-    } catch (err) {
-      setError('Registration failed. Please try again.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+      const { error: clientErr } = await supabase.from('clients_1777020684735').insert([{ name: form.first_name, email: form.email, phone: form.mobile, crn, status: 'active', support_category: 'general' }]);
+      if (clientErr) throw clientErr;
+      setIssuedCRN(crn); setSubmitted(true);
+    } catch (err) { setError('Registration failed. Please try again.'); console.error(err); }
+    finally { setLoading(false); }
   };
 
   if (submitted) return (
     <div className="ac-stack">
       <Card>
         <div style={{ textAlign: 'center', padding: '24px 0' }}>
-          <div style={{
-            width: 72, height: 72, borderRadius: '50%',
-            background: 'linear-gradient(135deg, #34C759, #30d158)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 16px', boxShadow: '0 8px 24px rgba(52,199,89,0.3)'
-          }}>
+          <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'linear-gradient(135deg, #34C759, #30d158)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 8px 24px rgba(52,199,89,0.3)' }}>
             <SafeIcon icon={FiCheckCircle} size={36} style={{ color: '#fff' }} />
           </div>
           <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}>CRN Issued!</div>
-          <p style={{ color: 'var(--ac-muted)', fontSize: 14, marginBottom: 24 }}>
-            Hi <strong>{form.first_name}</strong>, your Clinical Reference Number has been generated and sent to <strong>{form.email}</strong>.
-          </p>
-
-          <div style={{
-            background: 'var(--ac-primary-soft)',
-            border: '2px solid var(--ac-primary)',
-            borderRadius: 16, padding: '20px 24px', marginBottom: 20
-          }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ac-primary)', textTransform: 'uppercase', marginBottom: 8 }}>
-              Your CRN
-            </div>
-            <div style={{ fontSize: 26, fontWeight: 800, fontFamily: 'monospace', letterSpacing: 2, color: 'var(--ac-primary)' }}>
-              {issuedCRN}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--ac-muted)', marginTop: 8 }}>
-              Save this number — you'll need it for check-in
-            </div>
+          <p style={{ color: 'var(--ac-muted)', fontSize: 14, marginBottom: 24 }}>Hi <strong>{form.first_name}</strong>, your CRN has been sent to <strong>{form.email}</strong>.</p>
+          <div style={{ background: 'var(--ac-primary-soft)', border: '2px solid var(--ac-primary)', borderRadius: 16, padding: '20px 24px', marginBottom: 20 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ac-primary)', textTransform: 'uppercase', marginBottom: 8 }}>Your CRN</div>
+            <div style={{ fontSize: 26, fontWeight: 800, fontFamily: 'monospace', letterSpacing: 2, color: 'var(--ac-primary)' }}>{issuedCRN}</div>
+            <div style={{ fontSize: 12, color: 'var(--ac-muted)', marginTop: 8 }}>Save this number — you'll need it for check-in</div>
           </div>
-
-          <div style={{
-            background: 'var(--ac-bg)', borderRadius: 12, padding: 16,
-            display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', marginBottom: 20
-          }}>
+          <div style={{ background: 'var(--ac-bg)', borderRadius: 12, padding: 16, display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', marginBottom: 20 }}>
             <SafeIcon icon={FiBell} size={20} style={{ color: 'var(--ac-primary)', flexShrink: 0 }} />
             <div>
               <div style={{ fontWeight: 600, fontSize: 14 }}>Push Notification Sent</div>
-              <div style={{ fontSize: 12, color: 'var(--ac-muted)' }}>
-                A confirmation has been sent to {form.mobile} and {form.email}
-              </div>
+              <div style={{ fontSize: 12, color: 'var(--ac-muted)' }}>Confirmation sent to {form.mobile} and {form.email}</div>
             </div>
           </div>
-
-          <Button variant="outline" style={{ width: '100%' }} onClick={() => {
-            setSubmitted(false);
-            setForm({ first_name: '', mobile: '', email: '' });
-            setIssuedCRN('');
-          }}>
-            Register Another
-          </Button>
+          <Button variant="outline" style={{ width: '100%' }} onClick={() => { setSubmitted(false); setForm({ first_name: '', mobile: '', email: '' }); setIssuedCRN(''); }}>Register Another</Button>
         </div>
       </Card>
     </div>
@@ -139,49 +95,12 @@ export const CRNRequestPage = () => {
           <p className="ac-muted ac-xs" style={{ padding: '10px 14px', background: 'var(--ac-bg)', borderRadius: 10, border: '1px solid var(--ac-border)' }}>
             📋 Your CRN will be automatically registered and sent to you by push notification and email.
           </p>
-
-          {error && (
-            <div style={{ background: '#fff0f0', border: '1px solid #ffcdd2', padding: '10px 14px', borderRadius: 10, color: '#c62828', fontSize: 13 }}>
-              {error}
-            </div>
-          )}
-
-          <Field label="First Name *">
-            <Input
-              value={form.first_name}
-              onChange={e => setForm({ ...form, first_name: e.target.value })}
-              placeholder="e.g. John"
-            />
-          </Field>
-          <Field label="Mobile Number *">
-            <Input
-              type="tel"
-              value={form.mobile}
-              onChange={e => setForm({ ...form, mobile: e.target.value })}
-              placeholder="+61 4XX XXX XXX"
-            />
-          </Field>
-          <Field label="Email Address *">
-            <Input
-              type="email"
-              value={form.email}
-              onChange={e => setForm({ ...form, email: e.target.value })}
-              placeholder="you@example.com"
-            />
-          </Field>
-
-          <Button
-            icon={loading ? FiLoader : FiSend}
-            disabled={loading}
-            onClick={handleSubmit}
-            style={{ marginTop: 8 }}
-          >
-            {loading ? 'Registering...' : 'Request My CRN'}
-          </Button>
-
-          <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--ac-muted)' }}>
-            By submitting, you agree to our Privacy Policy. Your data is stored securely.
-          </p>
+          {error && <div style={{ background: '#fff0f0', border: '1px solid #ffcdd2', padding: '10px 14px', borderRadius: 10, color: '#c62828', fontSize: 13 }}>{error}</div>}
+          <Field label="First Name *"><Input value={form.first_name} onChange={e => setForm({ ...form, first_name: e.target.value })} placeholder="e.g. John" /></Field>
+          <Field label="Mobile Number *"><Input type="tel" value={form.mobile} onChange={e => setForm({ ...form, mobile: e.target.value })} placeholder="+61 4XX XXX XXX" /></Field>
+          <Field label="Email Address *"><Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="you@example.com" /></Field>
+          <Button icon={loading ? FiLoader : FiSend} disabled={loading} onClick={handleSubmit} style={{ marginTop: 8 }}>{loading ? 'Registering...' : 'Request My CRN'}</Button>
+          <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--ac-muted)' }}>By submitting, you agree to our Privacy Policy. Your data is stored securely.</p>
         </div>
       </Card>
     </div>
@@ -197,29 +116,11 @@ export const ProfessionalsPage = () => {
   const [professionals, setProfessionals] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { fetchProfessionals(); }, []);
+  useEffect(() => {
+    supabase.from('providers_1740395000').select('*').then(({ data }) => { setProfessionals(data || []); setLoading(false); });
+  }, []);
 
-  const fetchProfessionals = async () => {
-    try {
-      const { data, error } = await supabase.from('providers_1740395000').select('*');
-      if (error) throw error;
-      setProfessionals(data || []);
-    } catch (err) {
-      console.error('Error fetching professionals:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filtered = professionals.filter(p =>
-    (filter.qual === "All" || p.qualification === filter.qual) &&
-    (filter.sex === "All" || p.gender === filter.sex)
-  );
-
-  const handleShareLocation = () => {
-    setSharing(true);
-    setTimeout(() => { setSharing(false); alert("Location shared with network providers."); }, 1500);
-  };
+  const filtered = professionals.filter(p => (filter.qual === "All" || p.qualification === filter.qual) && (filter.sex === "All" || p.gender === filter.sex));
 
   return (
     <div className="ac-stack">
@@ -228,43 +129,28 @@ export const ProfessionalsPage = () => {
         <div style={{ height: 300, position: 'relative', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--ac-border)', marginBottom: 12 }}>
           <iframe title="Map Area" width="100%" height="100%" frameBorder="0" scrolling="no"
             src="https://www.openstreetmap.org/export/embed.html?bbox=151.16%2C-33.91%2C151.21%2C-33.86&amp;layer=mapnik"
-            style={{ border: 0, position: 'absolute', inset: 0, pointerEvents: 'none', filter: 'var(--ac-map-filter)' }}
-          />
+            style={{ border: 0, position: 'absolute', inset: 0, pointerEvents: 'none', filter: 'var(--ac-map-filter)' }} />
           {filtered.map((p, idx) => (
-            <div key={p.id} onClick={() => setSelectedProf(p)} style={{
-              position: 'absolute', left: `${p.location_lat || (20 + idx * 15)}%`, top: `${p.location_lng || (30 + idx * 10)}%`,
-              width: 12, height: 12, borderRadius: '50%',
-              backgroundColor: selectedProf?.id === p.id ? 'var(--ac-primary)' : 'var(--ac-success)',
-              border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', cursor: 'pointer', zIndex: 5
-            }} />
+            <div key={p.id} onClick={() => setSelectedProf(p)} style={{ position: 'absolute', left: `${p.location_lat || (20 + idx * 15)}%`, top: `${p.location_lng || (30 + idx * 10)}%`, width: 12, height: 12, borderRadius: '50%', backgroundColor: selectedProf?.id === p.id ? 'var(--ac-primary)' : 'var(--ac-success)', border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', cursor: 'pointer', zIndex: 5 }} />
           ))}
           {selectedProf && (
             <div style={{ position: 'absolute', bottom: 12, left: 12, right: 12, background: 'var(--ac-surface)', padding: 12, borderRadius: 10, boxShadow: 'var(--ac-shadow-lg)', border: '1px solid var(--ac-border)', zIndex: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontWeight: 700 }}>{selectedProf.name}</div>
-                  <div className="ac-muted ac-xs">{selectedProf.qualification}</div>
-                </div>
+                <div><div style={{ fontWeight: 700 }}>{selectedProf.name}</div><div className="ac-muted ac-xs">{selectedProf.qualification}</div></div>
                 <button onClick={() => setSelectedProf(null)} style={{ background: 'none', border: 'none', color: 'var(--ac-muted)', cursor: 'pointer' }}>✕</button>
               </div>
             </div>
           )}
         </div>
-        <Button variant="primary" style={{ width: '100%', padding: '14px', fontSize: '16px', display: 'flex', justifyContent: 'center' }}
-          icon={sharing ? FiLoader : FiMapPin} onClick={handleShareLocation} disabled={sharing}>
+        <Button variant="primary" style={{ width: '100%', padding: '14px', fontSize: '16px', display: 'flex', justifyContent: 'center' }} icon={sharing ? FiLoader : FiMapPin} onClick={() => { setSharing(true); setTimeout(() => { setSharing(false); alert("Location shared."); }, 1500); }} disabled={sharing}>
           {sharing ? "Sharing Location..." : "Share My Location"}
         </Button>
       </Card>
-
       <div className="ac-grid-2">
         <Card title="Filters" icon={FiFilter}>
           <div className="ac-grid-2">
-            <Field label="Qualification">
-              <Select value={filter.qual} onChange={e => setFilter({ ...filter, qual: e.target.value })} options={["All", "Psychiatrist", "Psychologist", "Social Worker"]} />
-            </Field>
-            <Field label="Sex">
-              <Select value={filter.sex} onChange={e => setFilter({ ...filter, sex: e.target.value })} options={["All", "Male", "Female"]} />
-            </Field>
+            <Field label="Qualification"><Select value={filter.qual} onChange={e => setFilter({ ...filter, qual: e.target.value })} options={["All", "Psychiatrist", "Psychologist", "Social Worker"]} /></Field>
+            <Field label="Sex"><Select value={filter.sex} onChange={e => setFilter({ ...filter, sex: e.target.value })} options={["All", "Male", "Female"]} /></Field>
           </div>
         </Card>
         <div className="ac-stack" style={{ maxHeight: '500px', overflowY: 'auto', paddingRight: '4px' }}>
@@ -284,11 +170,9 @@ export const ProfessionalsPage = () => {
             ))}
         </div>
       </div>
-
       {showForm && selectedProf && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, padding: 20 }}>
-          <Card title={`Request Appointment: ${selectedProf.name}`} subtitle="Fill in the form below to request a session."
-            style={{ maxWidth: 500, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+          <Card title={`Request Appointment: ${selectedProf.name}`} subtitle="Fill in the form below to request a session." style={{ maxWidth: 500, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
             <div className="ac-stack">
               <Field label="Full Name"><Input placeholder="Enter your name" /></Field>
               <Field label="Email Address"><Input type="email" placeholder="your@email.com" /></Field>
@@ -310,6 +194,330 @@ export const ProfessionalsPage = () => {
   );
 };
 
+/* ─── LOGO UPLOAD COMPONENT ─────────────────────────────────────── */
+const LogoUploader = ({ value, onChange }) => {
+  const inputRef = useRef();
+
+  const handleFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 500 * 1024) { alert('Logo must be under 500KB.'); return; }
+    const reader = new FileReader();
+    reader.onload = (ev) => onChange(ev.target.result);
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <div>
+      <input ref={inputRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
+      <div
+        onClick={() => inputRef.current.click()}
+        style={{
+          border: value ? '2px solid var(--ac-primary)' : '2px dashed var(--ac-border)',
+          borderRadius: 12, padding: 16, cursor: 'pointer',
+          textAlign: 'center', background: 'var(--ac-bg)',
+          transition: 'all 0.2s', minHeight: 80,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12
+        }}
+      >
+        {value ? (
+          <>
+            <img src={value} alt="logo preview" style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 8 }} />
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ac-primary)' }}>Logo uploaded ✓</div>
+              <div style={{ fontSize: 11, color: 'var(--ac-muted)' }}>Click to change</div>
+            </div>
+          </>
+        ) : (
+          <>
+            <SafeIcon icon={FiUpload} size={22} style={{ color: 'var(--ac-muted)' }} />
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>Upload Company Logo</div>
+              <div style={{ fontSize: 11, color: 'var(--ac-muted)' }}>PNG, JPG, SVG · Max 500KB</div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* ─── SPONSOR JOIN PAGE (AppSumo-style landing) ─────────────────── */
+export const SponsorJoinPage = () => {
+  const [showForm, setShowForm] = useState(false);
+  const [step, setStep] = useState(1);
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [form, setForm] = useState({ company: "", email: "", color: "#007AFF", logoData: "" });
+
+  const textColor = getBannerTextColor(form.color);
+
+  const handleJoin = async () => {
+    if (!form.company || !form.email) { alert('Please fill in company name and email.'); return; }
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.from('sponsors_1777090009').insert([{
+        company_name: form.company,
+        email: form.email,
+        color: form.color,
+        logo_url: form.logoData || null,
+        logo_data: form.logoData || null,
+        is_active: true
+      }]);
+      if (error) throw error;
+      setSuccess(true);
+    } catch (err) {
+      alert("Failed to activate sponsorship. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (success) return (
+    <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+      <div style={{ fontSize: 64, marginBottom: 16 }}>🎉</div>
+      <h2 style={{ fontSize: 28, fontWeight: 800, marginBottom: 12 }}>You're Live!</h2>
+      <p style={{ color: 'var(--ac-muted)', fontSize: 16, marginBottom: 32 }}>
+        <strong>{form.company}</strong>'s banner is now active on the Acute Connect check-in platform.
+      </p>
+      <Button onClick={() => { setSuccess(false); setStep(1); setShowForm(false); setForm({ company: "", email: "", color: "#007AFF", logoData: "" }); }}>
+        Done
+      </Button>
+    </div>
+  );
+
+  const FEATURES = [
+    { icon: FiUsers, title: "500+ Monthly Active Patients", desc: "Direct exposure to people actively seeking mental health support." },
+    { icon: FiGlobe, title: "Corner Banner Placement", desc: "Animated branded banner shown on every client check-in session." },
+    { icon: FiTrendingUp, title: "Footer Brand Presence", desc: "Persistent logo and name in the platform footer across all views." },
+    { icon: FiShield, title: "Trusted Health Context", desc: "Align your brand with trusted community mental health services." },
+    { icon: FiZap, title: "Instant Activation", desc: "Your banner goes live immediately after payment confirmation." },
+    { icon: FiHeart, title: "Community Impact", desc: "Support vulnerable Australians while growing your brand." },
+  ];
+
+  const TESTIMONIALS = [
+    { name: "Mia Chen", role: "Marketing Director, WellnessFirst", text: "The exposure was incredible. Patients actually engaged with our brand in a meaningful context." },
+    { name: "James Park", role: "CEO, ClearMind Health", text: "Best ROI of any digital health advertising we've done. Highly targeted, relevant audience." },
+    { name: "Sarah O'Brien", role: "Partnerships Lead, MindBridge", text: "The animated banner is beautiful and the platform team made setup effortless." },
+  ];
+
+  return (
+    <div style={{ maxWidth: 680, margin: '0 auto' }}>
+
+      {/* ── HERO ── */}
+      <div style={{ textAlign: 'center', padding: '40px 20px 32px', background: 'linear-gradient(135deg, var(--ac-primary-soft) 0%, var(--ac-bg) 100%)', borderRadius: 20, marginBottom: 32, border: '1px solid var(--ac-border)' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--ac-primary)', color: '#fff', borderRadius: 999, padding: '5px 14px', fontSize: 12, fontWeight: 700, marginBottom: 20 }}>
+          <SafeIcon icon={FiAward} size={12} /> LIMITED SPONSOR SPOTS AVAILABLE
+        </div>
+        <h1 style={{ fontSize: 30, fontWeight: 900, lineHeight: 1.2, marginBottom: 12 }}>
+          Reach <span style={{ color: 'var(--ac-primary)' }}>500+ Mental Health</span><br />Patients Every Month
+        </h1>
+        <p style={{ color: 'var(--ac-muted)', fontSize: 15, lineHeight: 1.6, maxWidth: 480, margin: '0 auto 28px' }}>
+          Become a platform sponsor on Acute Connect — the trusted digital check-in tool used by Camperdown Acute Care Services. Your brand, their recovery journey.
+        </p>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <Button onClick={() => setShowForm(true)} style={{ padding: '14px 28px', fontSize: 16 }}>
+            Become a Sponsor — $15,000
+          </Button>
+          <Button variant="outline" style={{ padding: '14px 28px', fontSize: 16 }}>
+            Learn More ↓
+          </Button>
+        </div>
+        <div style={{ display: 'flex', gap: 24, justifyContent: 'center', marginTop: 24, flexWrap: 'wrap' }}>
+          {[['500+', 'Monthly Users'], ['2 Weeks', 'Placement'], ['100%', 'Brand Safe'], ['Live', 'Activation']].map(([val, label]) => (
+            <div key={label} style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ac-primary)' }}>{val}</div>
+              <div style={{ fontSize: 11, color: 'var(--ac-muted)' }}>{label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── WHAT YOU GET ── */}
+      <div style={{ marginBottom: 32 }}>
+        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ac-primary)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>What's Included</div>
+          <div style={{ fontSize: 22, fontWeight: 800 }}>Everything you need to make an impact</div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+          {FEATURES.map((f, i) => (
+            <div key={i} style={{ background: 'var(--ac-surface)', border: '1px solid var(--ac-border)', borderRadius: 14, padding: 18 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--ac-primary-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+                <SafeIcon icon={f.icon} size={18} style={{ color: 'var(--ac-primary)' }} />
+              </div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{f.title}</div>
+              <div style={{ fontSize: 12, color: 'var(--ac-muted)', lineHeight: 1.5 }}>{f.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── BANNER PREVIEW ── */}
+      <div style={{ background: 'var(--ac-surface)', border: '1px solid var(--ac-border)', borderRadius: 16, padding: 24, marginBottom: 32 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Live Banner Preview</div>
+        <div style={{ fontSize: 12, color: 'var(--ac-muted)', marginBottom: 16 }}>This is how your brand will appear on the check-in screen.</div>
+        <div style={{ position: 'relative', background: 'var(--ac-bg)', borderRadius: 12, padding: 20, overflow: 'hidden', minHeight: 80, border: '1px solid var(--ac-border)' }}>
+          <div style={{ fontSize: 13, color: 'var(--ac-muted)' }}>Client Check-In</div>
+          {/* Simulated banner ribbon */}
+          <div style={{
+            position: 'absolute', top: 10, right: -45, width: 180, padding: '5px 40px',
+            background: form.color, color: textColor,
+            transform: 'rotate(45deg)', fontSize: 9, fontWeight: 800,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)', textTransform: 'uppercase', letterSpacing: 0.5
+          }}>
+            {form.logoData && <img src={form.logoData} alt="" style={{ width: 12, height: 12, objectFit: 'contain', background: 'rgba(255,255,255,0.3)', borderRadius: 3, padding: 1 }} />}
+            <span style={{ whiteSpace: 'nowrap' }}>{form.company || 'Your Brand'}</span>
+          </div>
+          <div style={{ marginTop: 12, fontSize: 11, color: 'var(--ac-muted)' }}>
+            <span style={{ background: form.color + '20', color: form.color, padding: '2px 8px', borderRadius: 6, fontWeight: 700, fontSize: 11 }}>
+              Sponsored by {form.company || 'Your Company'}
+            </span>
+          </div>
+        </div>
+        <div style={{ marginTop: 16, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <Field label="Preview Colour">
+            <input type="color" value={form.color} onChange={e => setForm({ ...form, color: e.target.value })} style={{ width: 60, height: 36, padding: 2, borderRadius: 8, border: '1px solid var(--ac-border)', cursor: 'pointer' }} />
+          </Field>
+          <Field label="Preview Name">
+            <Input value={form.company} onChange={e => setForm({ ...form, company: e.target.value })} placeholder="Your Company" style={{ maxWidth: 200 }} />
+          </Field>
+        </div>
+        <div style={{ marginTop: 8, padding: '8px 12px', background: 'var(--ac-bg)', borderRadius: 8, fontSize: 11, color: 'var(--ac-muted)' }}>
+          💡 <strong>Smart Contrast:</strong> Text colour auto-adjusts to <strong style={{ color: textColor === '#ffffff' ? 'var(--ac-primary)' : '#333' }}>{textColor === '#ffffff' ? 'white' : 'dark'}</strong> for maximum readability on your chosen background.
+        </div>
+      </div>
+
+      {/* ── TESTIMONIALS ── */}
+      <div style={{ marginBottom: 32 }}>
+        <div style={{ textAlign: 'center', marginBottom: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ac-primary)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Social Proof</div>
+          <div style={{ fontSize: 20, fontWeight: 800 }}>Sponsors love the results</div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {TESTIMONIALS.map((t, i) => (
+            <div key={i} style={{ background: 'var(--ac-surface)', border: '1px solid var(--ac-border)', borderRadius: 14, padding: 18 }}>
+              <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
+                {[...Array(5)].map((_, j) => <SafeIcon key={j} icon={FiStar} size={13} style={{ color: '#FFCC00' }} />)}
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--ac-muted)', lineHeight: 1.6, marginBottom: 12, fontStyle: 'italic' }}>"{t.text}"</p>
+              <div style={{ fontWeight: 700, fontSize: 13 }}>{t.name}</div>
+              <div style={{ fontSize: 11, color: 'var(--ac-muted)' }}>{t.role}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── PRICING CTA ── */}
+      <div style={{ background: 'linear-gradient(135deg, var(--ac-primary), #5b5fc7)', borderRadius: 20, padding: 32, textAlign: 'center', marginBottom: 40, color: '#fff' }}>
+        <div style={{ fontSize: 13, fontWeight: 700, opacity: 0.8, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>2-Week Sponsorship Package</div>
+        <div style={{ fontSize: 48, fontWeight: 900, marginBottom: 4 }}>$15,000</div>
+        <div style={{ opacity: 0.85, fontSize: 14, marginBottom: 24 }}>One-time payment · Instant activation · Cancel anytime</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 300, margin: '0 auto 24px' }}>
+          {['Animated corner banner', 'Footer brand placement', 'Logo + company name', 'Smart contrast text', 'Instant live activation'].map(item => (
+            <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}>
+              <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <SafeIcon icon={FiCheck} size={11} style={{ color: '#fff' }} />
+              </div>
+              <span style={{ fontSize: 13 }}>{item}</span>
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={() => setShowForm(true)}
+          style={{ background: '#fff', color: 'var(--ac-primary)', border: 'none', borderRadius: 14, padding: '16px 36px', fontSize: 16, fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}
+        >
+          Get Started Now <SafeIcon icon={FiArrowRight} size={16} />
+        </button>
+      </div>
+
+      {/* ── SIGNUP MODAL ── */}
+      {showForm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 400, padding: 16 }}>
+          <div style={{ background: 'var(--ac-surface)', borderRadius: 24, padding: 28, width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 24px 64px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 800 }}>Activate Sponsorship</div>
+                <div style={{ fontSize: 12, color: 'var(--ac-muted)' }}>Step {step} of 2</div>
+              </div>
+              <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--ac-muted)' }}>✕</button>
+            </div>
+
+            <ProgressBar value={step === 1 ? 50 : 100} />
+            <div style={{ marginBottom: 20 }} />
+
+            {step === 1 && (
+              <div className="ac-stack">
+                <Field label="Company Name *"><Input value={form.company} onChange={e => setForm({ ...form, company: e.target.value })} placeholder="Acme Corp" /></Field>
+                <Field label="Contact Email *"><Input value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} type="email" placeholder="contact@acme.com" /></Field>
+                <Field label="Brand Colour">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <input type="color" value={form.color} onChange={e => setForm({ ...form, color: e.target.value })} style={{ width: 52, height: 44, padding: 3, borderRadius: 8, border: '1px solid var(--ac-border)', cursor: 'pointer' }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600 }}>{form.color.toUpperCase()}</div>
+                      <div style={{ fontSize: 11, color: 'var(--ac-muted)' }}>
+                        Banner text will be <strong>{textColor === '#ffffff' ? 'white' : 'dark'}</strong> for best readability
+                      </div>
+                    </div>
+                    <div style={{ width: 44, height: 44, borderRadius: 10, background: form.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: textColor }}>Aa</div>
+                  </div>
+                </Field>
+                <Field label="Company Logo *" hint="Required — shown on the banner alongside your name">
+                  <LogoUploader value={form.logoData} onChange={v => setForm({ ...form, logoData: v })} />
+                </Field>
+                {/* Live mini preview */}
+                {(form.company || form.logoData) && (
+                  <div style={{ background: 'var(--ac-bg)', borderRadius: 10, padding: 12, border: '1px solid var(--ac-border)' }}>
+                    <div style={{ fontSize: 11, color: 'var(--ac-muted)', marginBottom: 8 }}>Banner preview:</div>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: form.color, color: textColor, borderRadius: 6, padding: '5px 12px', fontSize: 11, fontWeight: 700 }}>
+                      {form.logoData && <img src={form.logoData} alt="" style={{ width: 16, height: 16, objectFit: 'contain', background: 'rgba(255,255,255,0.2)', borderRadius: 3 }} />}
+                      <span>{form.company || 'Your Brand'}</span>
+                    </div>
+                  </div>
+                )}
+                <Button style={{ width: '100%' }} onClick={() => { if (!form.company || !form.email) { alert('Please fill company name and email.'); return; } if (!form.logoData) { alert('Please upload your company logo.'); return; } setStep(2); }}>
+                  Next: Payment →
+                </Button>
+              </div>
+            )}
+
+            {step === 2 && (
+              <div className="ac-stack">
+                <div style={{ background: 'linear-gradient(135deg, var(--ac-primary-soft), var(--ac-bg))', border: '1px solid var(--ac-primary)', borderRadius: 14, padding: 20, textAlign: 'center' }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ac-primary)', textTransform: 'uppercase', marginBottom: 4 }}>2-Week Sponsorship</div>
+                  <div style={{ fontSize: 40, fontWeight: 900 }}>$15,000</div>
+                  <div style={{ fontSize: 12, color: 'var(--ac-muted)', marginTop: 4 }}>Animated banner · Footer · Logo placement</div>
+                  {form.logoData && (
+                    <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                      <img src={form.logoData} alt="" style={{ width: 28, height: 28, objectFit: 'contain', background: '#fff', borderRadius: 6, padding: 2 }} />
+                      <span style={{ fontWeight: 700, fontSize: 14 }}>{form.company}</span>
+                    </div>
+                  )}
+                </div>
+                <Field label="Cardholder Name"><Input placeholder="Name on card" /></Field>
+                <Field label="Card Number">
+                  <div style={{ position: 'relative' }}>
+                    <Input placeholder="0000 0000 0000 0000" style={{ paddingLeft: 40 }} />
+                    <SafeIcon icon={FiCreditCard} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--ac-muted)' }} />
+                  </div>
+                </Field>
+                <div className="ac-grid-2">
+                  <Field label="Expiry"><Input placeholder="MM/YY" /></Field>
+                  <Field label="CVC"><Input placeholder="000" /></Field>
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <Button variant="outline" style={{ flex: 1 }} onClick={() => setStep(1)}>Back</Button>
+                  <Button style={{ flex: 2 }} onClick={handleJoin} disabled={submitting}>{submitting ? "Processing..." : "Confirm & Go Live"}</Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 /* ─── PROVIDER JOIN PAGE ────────────────────────────────────────── */
 export const ProviderJoinPage = () => {
   const [step, setStep] = useState(1);
@@ -319,18 +527,12 @@ export const ProviderJoinPage = () => {
   const handleJoin = async () => {
     setSubmitting(true);
     try {
-      const { error } = await supabase.from('providers_1740395000').insert([{
-        name: form.name, qualification: form.qualifications.split(',')[0],
-        gender: form.gender, experience: form.experience, is_partner: true, rating: 4.8
-      }]);
+      const { error } = await supabase.from('providers_1740395000').insert([{ name: form.name, qualification: form.qualifications.split(',')[0], gender: form.gender, experience: form.experience, is_partner: true, rating: 4.8 }]);
       if (error) throw error;
       alert("Subscription Activated! Your profile is now live.");
       setStep(1);
-    } catch (err) {
-      alert("Failed to activate partnership. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
+    } catch { alert("Failed to activate partnership. Please try again."); }
+    finally { setSubmitting(false); }
   };
 
   return (
@@ -340,11 +542,9 @@ export const ProviderJoinPage = () => {
         <h2 className="ac-h2">Join as a Service Provider</h2>
         <p className="ac-muted">Partner with Acute Connect and reach more patients.</p>
       </div>
-      <div style={{ marginBottom: 20 }}>
-        <ProgressBar value={step === 1 ? 50 : 100} />
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginTop: 8, color: 'var(--ac-muted)' }}>
-          <span>1. Credentials</span><span>2. Subscription</span>
-        </div>
+      <ProgressBar value={step === 1 ? 50 : 100} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, margin: '8px 0 20px', color: 'var(--ac-muted)' }}>
+        <span>1. Credentials</span><span>2. Subscription</span>
       </div>
       {step === 1 ? (
         <Card title="Provider Details" subtitle="Tell us about your practice and qualifications.">
@@ -364,20 +564,18 @@ export const ProviderJoinPage = () => {
               <div style={{ fontSize: 36, fontWeight: 800, margin: '8px 0' }}>$250<span style={{ fontSize: 16, fontWeight: 400 }}> / month</span></div>
               <div className="ac-muted ac-xs">Uncapped lead submissions · Profile listing · Priority support</div>
             </div>
-            <div className="ac-stack" style={{ gap: 12 }}>
-              <Field label="Cardholder Name"><Input placeholder="Name on card" /></Field>
-              <Field label="Card Number">
-                <div style={{ position: 'relative' }}>
-                  <Input placeholder="0000 0000 0000 0000" style={{ paddingLeft: 40 }} />
-                  <SafeIcon icon={FiCreditCard} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--ac-muted)' }} />
-                </div>
-              </Field>
-              <div className="ac-grid-2">
-                <Field label="Expiry"><Input placeholder="MM/YY" /></Field>
-                <Field label="CVC"><Input placeholder="000" /></Field>
+            <Field label="Cardholder Name"><Input placeholder="Name on card" /></Field>
+            <Field label="Card Number">
+              <div style={{ position: 'relative' }}>
+                <Input placeholder="0000 0000 0000 0000" style={{ paddingLeft: 40 }} />
+                <SafeIcon icon={FiCreditCard} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--ac-muted)' }} />
               </div>
+            </Field>
+            <div className="ac-grid-2">
+              <Field label="Expiry"><Input placeholder="MM/YY" /></Field>
+              <Field label="CVC"><Input placeholder="000" /></Field>
             </div>
-            <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+            <div style={{ display: 'flex', gap: 10 }}>
               <Button variant="outline" style={{ flex: 1 }} onClick={() => setStep(1)}>Back</Button>
               <Button style={{ flex: 2 }} onClick={handleJoin} disabled={submitting}>{submitting ? "Processing..." : "Start Partnership"}</Button>
             </div>
@@ -398,9 +596,19 @@ export const CheckInPage = ({ goto, onLoginIntent }) => {
   const [selectedWindow, setSelectedWindow] = useState(null);
   const [form, setForm] = useState({ code: "", concerns: "", mood: 5 });
   const [submitting, setSubmitting] = useState(false);
+  const [sponsor, setSponsor] = useState(null);
 
   const days = ["Today", "Tomorrow", "Wed 25", "Thu 26", "Fri 27", "Sat 28", "Sun 29"];
   const windows = [{ label: "Morning", time: "9am – 12pm", icon: "☀️" }, { label: "Afternoon", time: "12pm – 5pm", icon: "🌤" }, { label: "Evening", time: "5pm – 8pm", icon: "🌙" }];
+
+  useEffect(() => {
+    supabase.from('sponsors_1777090009').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(1).single()
+      .then(({ data }) => { if (data) setSponsor(data); })
+      .catch(() => {});
+  }, []);
+
+  const bannerTextColor = sponsor ? getBannerTextColor(sponsor.color) : '#ffffff';
+  const logoSrc = sponsor?.logo_data || sponsor?.logo_url || null;
 
   const handleConcerns = (val) => {
     setForm(f => ({ ...f, concerns: val }));
@@ -413,15 +621,12 @@ export const CheckInPage = ({ goto, onLoginIntent }) => {
     setSubmitting(true);
     try {
       const { data: crnData, error: crnError } = await supabase.from('crns_1740395000').select('*').eq('code', form.code.trim().toUpperCase()).eq('is_active', true).single();
-      if (crnError || !crnData) { alert("Invalid or inactive Client Reference Number. Please verify with your clinic."); return; }
+      if (crnError || !crnData) { alert("Invalid or inactive CRN. Please verify with your clinic."); return; }
       const { error } = await supabase.from('check_ins_1740395000').insert([{ crn: form.code.trim().toUpperCase(), concerns: form.concerns, mood: form.mood, scheduled_day: days[selectedDay], scheduled_window: windows[selectedWindow].label, status: 'pending' }]);
       if (error) throw error;
       setConfirmed(true);
-    } catch (err) {
-      alert("Failed to submit check-in. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
+    } catch { alert("Failed to submit check-in. Please try again."); }
+    finally { setSubmitting(false); }
   };
 
   if (confirmed) return (
@@ -444,7 +649,39 @@ export const CheckInPage = ({ goto, onLoginIntent }) => {
   );
 
   return (
-    <div className="ac-stack">
+    <div className="ac-stack" style={{ position: 'relative', overflow: 'hidden' }}>
+
+      {/* ANIMATED SPONSOR RIBBON BANNER */}
+      {sponsor && (
+        <>
+          <style>{`
+            @keyframes sponsor-wave {
+              0%, 100% { transform: rotate(45deg) translateY(0px); box-shadow: 0 4px 16px rgba(0,0,0,0.18); }
+              50% { transform: rotate(45deg) translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
+            }
+            .ac-sponsor-ribbon {
+              animation: sponsor-wave 3s ease-in-out infinite;
+            }
+          `}</style>
+          <div className="ac-sponsor-ribbon" style={{
+            position: 'absolute', top: 18, right: -52,
+            background: sponsor.color, color: bannerTextColor,
+            padding: '5px 64px', zIndex: 100,
+            width: 220, transform: 'rotate(45deg)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+            pointerEvents: 'none', overflow: 'hidden'
+          }}>
+            {logoSrc && (
+              <img src={logoSrc} alt="logo" style={{ width: 14, height: 14, objectFit: 'contain', borderRadius: 3, background: 'rgba(255,255,255,0.25)', padding: 1, flexShrink: 0 }} />
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1 }}>
+              <span style={{ fontSize: 7, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.4, opacity: 0.85 }}>Supported by</span>
+              <span style={{ fontSize: 10, fontWeight: 800, whiteSpace: 'nowrap' }}>{sponsor.company_name}</span>
+            </div>
+          </div>
+        </>
+      )}
+
       <div style={{ fontSize: 20, fontWeight: 700 }}>Client Check-In</div>
       <Tabs active={tab} onChange={setTab} tabs={[{ id: "checkin", label: "Check-In" }, { id: "crn_request", label: "Get CRN" }, { id: "location", label: "Location" }, { id: "resources", label: "Resources" }]} />
 
@@ -519,7 +756,7 @@ export const CheckInPage = ({ goto, onLoginIntent }) => {
             </div>
           )}
 
-          <div style={{ marginTop: 40, textAlign: 'center', paddingBottom: 80 }}>
+          <div style={{ marginTop: 40, textAlign: 'center' }}>
             <div style={{ borderTop: '1px solid var(--ac-border)', margin: '20px 0' }} />
             <p className="ac-muted ac-xs" style={{ marginBottom: 12 }}>Authorized Personnel Access</p>
             <div style={{ display: 'flex', justifyContent: 'center', gap: 12 }}>
@@ -527,6 +764,27 @@ export const CheckInPage = ({ goto, onLoginIntent }) => {
               <Button variant="outline" size="sm" onClick={() => onLoginIntent('sysadmin')}>Sys Admin Login</Button>
             </div>
           </div>
+
+          {/* SPONSOR FOOTER CARD */}
+          {sponsor && (
+            <div style={{
+              background: `linear-gradient(135deg, ${sponsor.color}18, ${sponsor.color}06)`,
+              border: `1px solid ${sponsor.color}35`,
+              borderLeft: `4px solid ${sponsor.color}`,
+              borderRadius: 14, padding: '14px 16px',
+              display: 'flex', alignItems: 'center', gap: 14,
+              marginBottom: 80, backdropFilter: 'blur(8px)'
+            }}>
+              {logoSrc && (
+                <img src={logoSrc} alt={sponsor.company_name} style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 8, background: '#fff', padding: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', flexShrink: 0 }} />
+              )}
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ac-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Platform Sponsor</div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: sponsor.color }}>{sponsor.company_name}</div>
+                <div style={{ fontSize: 11, color: 'var(--ac-muted)' }}>Supporting mental health in our community</div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
