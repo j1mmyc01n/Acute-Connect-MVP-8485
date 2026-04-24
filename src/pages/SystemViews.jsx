@@ -257,16 +257,18 @@ export const HeatMapPage = () => {
       </div>
       
       {aiInsight && (
-        <div style={{ background: 'var(--ac-primary-soft)', border: '1px solid var(--ac-primary)', padding: 16, borderRadius: 12, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-          <SafeIcon icon={FiActivity} style={{ color: 'var(--ac-primary)', marginTop: 2 }} />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, color: 'var(--ac-primary)', marginBottom: 4 }}>AI Predictive Insight generated at {new Date().toLocaleTimeString()}</div>
-            <div className="ac-sm" style={{ color: 'var(--ac-text)' }}>
-              Historical data patterns indicate a <strong>78% probability</strong> of a crisis spike in the <strong>Camperdown</strong> sector between 22:00 and 02:00. 
-              Recommendation: Pre-deploy 1 Ambulance and 1 Support Staff to the Newtown staging area.
+        <div style={{ background: 'var(--ac-primary-soft)', border: '1px solid var(--ac-primary)', padding: 16, borderRadius: 12 }}>
+          <div className="ac-flex-gap" style={{ marginBottom: 8, alignItems: 'flex-start' }}>
+            <SafeIcon icon={FiActivity} style={{ color: 'var(--ac-primary)', marginTop: 2, flexShrink: 0 }} />
+            <div style={{ fontWeight: 700, color: 'var(--ac-primary)', flex: 1, lineHeight: 1.3 }}>
+              AI Predictive Insight generated at {new Date().toLocaleTimeString()}
             </div>
           </div>
-          <Button size="sm" style={{ whiteSpace: 'nowrap', padding: '6px 12px' }}>Deploy Units</Button>
+          <div className="ac-sm" style={{ color: 'var(--ac-text)', marginBottom: 16, lineHeight: 1.5 }}>
+            Historical data patterns indicate a <strong>78% probability</strong> of a crisis spike in the <strong>Camperdown</strong> sector between 22:00 and 02:00. 
+            Recommendation: Pre-deploy 1 Ambulance and 1 Support Staff to the Newtown staging area.
+          </div>
+          <Button size="sm" style={{ width: '100%' }}>Deploy Units</Button>
         </div>
       )}
 
