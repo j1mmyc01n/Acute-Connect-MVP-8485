@@ -3,7 +3,8 @@ import * as FiIcons from 'react-icons/fi';
 const { 
   FiClipboard, FiBookOpen, FiGrid, FiZap, FiUsers, FiHome, 
   FiBarChart2, FiSettings, FiUser, FiFileText, FiShield, 
-  FiColumns, FiHash, FiActivity, FiCpu, FiTerminal, FiMap, FiUserPlus
+  FiColumns, FiHash, FiActivity, FiCpu, FiTerminal, FiMap, FiUserPlus,
+  FiMessageSquare, FiAlertCircle
 } = FiIcons;
 
 export const MENU = [
@@ -19,18 +20,22 @@ export const MENU = [
     group: "ADMINISTRATOR",
     items: [
       { id: "admin", label: "Admin Panel", icon: FiGrid, badge: "Main" },
-      { id: "integrations", label: "Integrations", icon: FiZap, badge: "New" },
-      { id: "clients", label: "Client Management", icon: FiUsers, badge: "Active" },
+      { id: "crm", label: "Client CRM", icon: FiUsers, badge: "Sync" },
+      { id: "crisis", label: "Crisis Management", icon: FiAlertCircle, badge: "Alert" },
+      { id: "clients", label: "Patient Registry", icon: FiUsers, badge: "Active" },
       { id: "reports", label: "Reports", icon: FiBarChart2, badge: "Updated" },
+      { id: "integrations", label: "Integrations", icon: FiZap, badge: "New" },
     ],
   },
   {
     group: "SYSADMIN",
     items: [
       { id: "sysdash", label: "System Dashboard", icon: FiActivity, badge: null },
-      { id: "heatmap", label: "City Heat Map", icon: FiMap, badge: "Data" },
-      { id: "offices", label: "Office Management", icon: FiHome, badge: "Active" },
-      { id: "users", label: "User Management", icon: FiUser, badge: "Access" },
+      { id: "heatmap", label: "City Heat Map", icon: FiMap, badge: "Live" },
+      { id: "offices", label: "Office Management", icon: FiHome, badge: "Manage" },
+      { id: "users", label: "Staff Management", icon: FiUser, badge: "Access" },
+      { id: "feedback", label: "Feedback & Tickets", icon: FiMessageSquare, badge: "Issues" },
+      { id: "features", label: "Feature Requests", icon: FiColumns, badge: "Vote" },
       { id: "logs", label: "System Logs", icon: FiFileText, badge: "New" },
       { id: "superadmin", label: "⚡ Super Admin", icon: FiTerminal, badge: "System" },
       { id: "modaccess", label: "Module Access", icon: FiShield, badge: "Permissions" },

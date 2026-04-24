@@ -5,15 +5,16 @@ import { useDarkMode, cx, badgeToneFor } from './lib/utils';
 import { MENU } from './lib/menu';
 import { Badge, DiamondLogo, Card, Field, Input, Button } from './components/UI';
 import { CheckInPage, ResourcesPage, ProfessionalsPage, ProviderJoinPage } from './pages/ClientViews';
-import { AdminPage, ClientsPage, CRNPage, ReportsPage } from './pages/AdminViews';
+import { AdminPage, ClientsPage, CRNPage, ReportsPage, CRMPage, CrisisPage } from './pages/AdminViews';
 import {
   LogsPage, SysDashPage, IntegrationPage,
   RegressionPage, SettingsPage,
   UsersPage, ModuleAccessPage, SiteMapPage,
-  SuperAdminPage, OfficesPage, HeatMapPage
+  SuperAdminPage, OfficesPage, HeatMapPage,
+  FeedbackPage, FeatureRequestPage
 } from './pages/SystemViews';
 
-const { FiMenu, FiMoon, FiSun, FiLock } = FiIcons;
+const { FiMenu, FiMoon, FiSun, FiLock, FiLogOut } = FiIcons;
 
 const PUBLIC_PAGES = new Set(['checkin', 'resources', 'professionals', 'join_provider']);
 
@@ -23,21 +24,30 @@ const PageRenderer = ({ id, goto, onLoginIntent }) => {
     case 'resources':     return <ResourcesPage goto={goto} />;
     case 'professionals': return <ProfessionalsPage />;
     case 'join_provider': return <ProviderJoinPage />;
+    
+    // Admin Views
     case 'admin':         return <AdminPage />;
     case 'clients':       return <ClientsPage />;
     case 'crn':           return <CRNPage />;
     case 'reports':       return <ReportsPage />;
+    case 'crm':           return <CRMPage />;
+    case 'crisis':        return <CrisisPage />;
+
+    // System Views
+    case 'sysdash':       return <SysDashPage />;
     case 'offices':       return <OfficesPage />;
     case 'integrations':  return <IntegrationPage />;
     case 'logs':          return <LogsPage />;
-    case 'sysdash':       return <SysDashPage />;
     case 'heatmap':       return <HeatMapPage />;
     case 'users':         return <UsersPage />;
+    case 'feedback':      return <FeedbackPage />;
+    case 'features':      return <FeatureRequestPage />;
     case 'modaccess':     return <ModuleAccessPage />;
     case 'sitemap':       return <SiteMapPage />;
     case 'regression':    return <RegressionPage />;
     case 'settings':      return <SettingsPage />;
     case 'superadmin':    return <SuperAdminPage />;
+    
     default:              return <CheckInPage goto={goto} onLoginIntent={onLoginIntent} />;
   }
 };
@@ -81,7 +91,7 @@ const SmartMenu = ({ open, onClose, current, goto, role, onLogout }) => (
               onClick={() => { onLogout(); onClose(); }}
               style={{ color: 'var(--ac-danger)' }}
             >
-              <SafeIcon icon={FiIcons.FiLogOut} size={16} />
+              <SafeIcon icon={FiLogOut} size={16} />
               <span>Logout</span>
             </button>
           </>
@@ -215,7 +225,7 @@ export default function App() {
       </main>
 
       <footer style={{ textAlign: 'center', padding: '20px 16px', color: 'var(--ac-muted)', fontSize: 11, borderTop: '1px solid var(--ac-border)' }}>
-        © Laurendi · Acute Connect v2.4.2 · Protected by AES-256
+        © Laurendi · Acute Connect v2.5.0 · Protected by AES-256
       </footer>
 
       {loginModal && (

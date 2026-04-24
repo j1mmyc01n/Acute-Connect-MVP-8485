@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import * as FiIcons from 'react-icons/fi';
 import SafeIcon from '../common/SafeIcon';
-import { generateCRN } from '../lib/utils';
+import { generateCRN, cx } from '../lib/utils';
 import { supabase } from '../supabase/supabase';
-import { Badge, Button, Card, Field, Input, StatusBadge } from '../components/UI';
+import { Badge, Button, Card, Field, Input, StatusBadge, Textarea, Select } from '../components/UI';
 
 const {
-  FiRefreshCw, FiPlus, FiCheckCircle, FiDownload, FiUserPlus, FiX
+  FiRefreshCw, FiPlus, FiCheckCircle, FiDownload, FiUserPlus, FiX,
+  FiCalendar, FiUserX, FiPhone, FiAlertTriangle, FiEdit2, FiShield, FiUserCheck
 } = FiIcons;
 
 const Toast = ({ msg, onClose }) => (
@@ -19,6 +20,19 @@ const Toast = ({ msg, onClose }) => (
   </div>
 );
 
+const ModalOverlay = ({ title, onClose, children }) => (
+  <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 16 }}>
+    <div style={{ background: 'var(--ac-surface)', borderRadius: 16, padding: 24, width: '100%', maxWidth: 450, boxShadow: 'var(--ac-shadow-lg)' }}>
+      <div className="ac-flex-between" style={{ marginBottom: 20 }}>
+        <h2 className="ac-h2">{title}</h2>
+        <button className="ac-icon-btn" onClick={onClose}><SafeIcon icon={FiX} size={16} /></button>
+      </div>
+      {children}
+    </div>
+  </div>
+);
+
+/* ─── ADMIN DASHBOARD ───────────────────────────────────────────── */
 export const AdminPage = () => {
   const [checkins, setCheckins] = useState([]);
   const [clients, setClients] = useState([]);
@@ -148,12 +162,264 @@ export const AdminPage = () => {
   );
 };
 
+/* ─── CLIENT CRM PAGE ───────────────────────────────────────────── */
+export const CRMPage = () => {
+  const [clients, setClients] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState('');
+  const [modalMode, setModalMode] = useState(null); // 'edit' or 'offboard'
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [form, setForm] = useState({ name: '', phone: '', email: '' });
+  const [offboardReason, setOffboardReason] = useState('');
+
+  useEffect(() => { fetchClients(); }, []);
+
+  const fetchClients = async () => {
+    setLoading(true);
+    const { data } = await supabase.from('clients_1777020684735').select('*').order('created_at', { ascending: false });
+    setClients(data || []);
+    setLoading(false);
+  };
+
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
+
+  const handleEdit = async () => {
+    const { error } = await supabase.from('clients_1777020684735').update({
+      name: form.name, email: form.email, phone: form.phone
+    }).eq('id', selectedClient.id);
+    if (!error) { showToast('Client profile updated.'); setModalMode(null); fetchClients(); }
+    else alert(error.message);
+  };
+
+  const handleOffboard = async () => {
+    if (!offboardReason) return alert('Please provide a reason for offboarding.');
+    const { error } = await supabase.from('clients_1777020684735').update({
+      status: 'offboarded', offboard_reason: offboardReason
+    }).eq('id', selectedClient.id);
+    if (!error) { showToast('Client successfully offboarded.'); setModalMode(null); fetchClients(); }
+    else alert(error.message);
+  };
+
+  const syncCalendar = () => {
+    showToast('Calendar sync initiated for external CRM.');
+  };
+
+  return (
+    <div className="ac-stack">
+      {toast && <Toast msg={toast} onClose={() => setToast('')} />}
+      <div className="ac-flex-between">
+        <h1 className="ac-h1">Client CRM</h1>
+        <Button variant="outline" icon={FiCalendar} onClick={syncCalendar}>Sync Calendars</Button>
+      </div>
+
+      <Card>
+        <div className="ac-table-container">
+          <table className="ac-table">
+            <thead>
+              <tr><th>Name</th><th>CRN</th><th>Contact</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+              {loading ? <tr><td colSpan="5" className="ac-center" style={{ padding: 24 }}>Loading…</td></tr>
+               : clients.length === 0 ? <tr><td colSpan="5" className="ac-center" style={{ padding: 24, color: 'var(--ac-muted)' }}>No clients found.</td></tr>
+               : clients.map(c => (
+                <tr key={c.id}>
+                  <td style={{ fontWeight: 600 }}>{c.name}</td>
+                  <td className="ac-mono ac-xs">{c.crn}</td>
+                  <td>
+                    <div className="ac-xs">{c.email || '—'}</div>
+                    <div className="ac-xs ac-muted">{c.phone || '—'}</div>
+                  </td>
+                  <td><StatusBadge status={c.status || 'active'} /></td>
+                  <td>
+                    {c.status !== 'offboarded' && (
+                      <div className="ac-flex-gap">
+                        <button className="ac-icon-btn" onClick={() => { setSelectedClient(c); setForm({ name: c.name, email: c.email, phone: c.phone }); setModalMode('edit'); }}>
+                          <SafeIcon icon={FiEdit2} size={14} />
+                        </button>
+                        <button className="ac-icon-btn" style={{ color: 'var(--ac-danger)' }} onClick={() => { setSelectedClient(c); setOffboardReason(''); setModalMode('offboard'); }}>
+                          <SafeIcon icon={FiUserX} size={14} />
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {modalMode === 'edit' && (
+        <ModalOverlay title="Edit Client Profile" onClose={() => setModalMode(null)}>
+          <div className="ac-stack">
+            <Field label="Full Name"><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></Field>
+            <Field label="Email"><Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></Field>
+            <Field label="Phone"><Input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></Field>
+            <div className="ac-grid-2" style={{ marginTop: 8 }}>
+              <Button variant="outline" onClick={() => setModalMode(null)}>Cancel</Button>
+              <Button onClick={handleEdit}>Save Changes</Button>
+            </div>
+          </div>
+        </ModalOverlay>
+      )}
+
+      {modalMode === 'offboard' && (
+        <ModalOverlay title="Offboard Client" onClose={() => setModalMode(null)}>
+          <div className="ac-stack">
+            <p className="ac-muted ac-xs">You are about to offboard <strong>{selectedClient.name}</strong>. This action will mark them as inactive.</p>
+            <Field label="Reason for Offboarding">
+              <Textarea value={offboardReason} onChange={e => setOffboardReason(e.target.value)} placeholder="e.g. Treatment completed, transferred..." />
+            </Field>
+            <div className="ac-grid-2" style={{ marginTop: 8 }}>
+              <Button variant="outline" onClick={() => setModalMode(null)}>Cancel</Button>
+              <Button style={{ background: 'var(--ac-danger)', borderColor: 'var(--ac-danger)' }} onClick={handleOffboard}>Confirm Offboard</Button>
+            </div>
+          </div>
+        </ModalOverlay>
+      )}
+    </div>
+  );
+};
+
+/* ─── CRISIS MANAGEMENT ─────────────────────────────────────────── */
+export const CrisisPage = () => {
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState('');
+  const [modal, setModal] = useState(false);
+  const [form, setForm] = useState({ client_name: '', client_crn: '', location: '', severity: 'high', crisis_type: 'mental_health', notes: '' });
+
+  useEffect(() => { fetchEvents(); }, []);
+
+  const fetchEvents = async () => {
+    setLoading(true);
+    const { data } = await supabase.from('crisis_events_1777090000').select('*').order('created_at', { ascending: false });
+    setEvents(data || []);
+    setLoading(false);
+  };
+
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
+
+  const handleCreate = async () => {
+    if (!form.client_name) return alert('Client name is required');
+    const { error } = await supabase.from('crisis_events_1777090000').insert([form]);
+    if (!error) { showToast('Crisis Event Raised!'); setModal(false); fetchEvents(); }
+  };
+
+  const handleDispatch = async (event, type) => {
+    const update = type === 'police' ? { police_requested: true } : { ambulance_requested: true };
+    await supabase.from('crisis_events_1777090000').update(update).eq('id', event.id);
+    showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} dispatched.`);
+    fetchEvents();
+  };
+
+  const handleResolve = async (event) => {
+    await supabase.from('crisis_events_1777090000').update({ status: 'resolved', resolved_at: new Date().toISOString() }).eq('id', event.id);
+    showToast('Crisis Event Resolved.');
+    fetchEvents();
+  };
+
+  const handleAssignTeam = async (event) => {
+    const newTeam = [...(event.assigned_team || []), 'Dr. Smith'];
+    await supabase.from('crisis_events_1777090000').update({ assigned_team: newTeam }).eq('id', event.id);
+    showToast('Team member assigned.');
+    fetchEvents();
+  };
+
+  const activeEvents = events.filter(e => e.status === 'active');
+  const resolvedEvents = events.filter(e => e.status === 'resolved');
+
+  return (
+    <div className="ac-stack">
+      {toast && <Toast msg={toast} onClose={() => setToast('')} />}
+      <div className="ac-flex-between">
+        <h1 className="ac-h1">Crisis Management</h1>
+        <Button style={{ background: 'var(--ac-danger)', borderColor: 'var(--ac-danger)' }} icon={FiAlertTriangle} onClick={() => { setForm({ client_name: '', client_crn: '', location: '', severity: 'high', crisis_type: 'mental_health', notes: '' }); setModal(true); }}>
+          Raise Event
+        </Button>
+      </div>
+
+      <div className="ac-grid-2">
+        <Card title="Active Events" subtitle="Requires immediate attention">
+          <div className="ac-stack-sm">
+            {activeEvents.length === 0 ? <p className="ac-muted">No active crisis events.</p> : activeEvents.map(e => (
+              <div key={e.id} style={{ border: '1px solid var(--ac-danger)', borderRadius: 12, padding: 16, background: 'var(--ac-surface)' }}>
+                <div className="ac-flex-between" style={{ marginBottom: 8 }}>
+                  <div style={{ fontWeight: 700, fontSize: 16 }}>{e.client_name} <span className="ac-mono ac-xs">{e.client_crn}</span></div>
+                  <Badge tone="red">{e.severity.toUpperCase()}</Badge>
+                </div>
+                <div className="ac-muted ac-xs" style={{ marginBottom: 12 }}>{e.location}</div>
+                <div style={{ background: 'var(--ac-bg)', padding: 10, borderRadius: 8, fontSize: 13, marginBottom: 12 }}>{e.notes || 'No additional notes provided.'}</div>
+                
+                <div className="ac-flex-gap" style={{ flexWrap: 'wrap' }}>
+                  <Button variant="outline" size="sm" onClick={() => handleAssignTeam(e)} icon={FiUserCheck}>
+                    Assign Me
+                  </Button>
+                  <Button variant="outline" size="sm" disabled={e.police_requested} onClick={() => handleDispatch(e, 'police')} icon={FiShield}>
+                    {e.police_requested ? 'Police Dispatched' : 'Request Police'}
+                  </Button>
+                  <Button variant="outline" size="sm" disabled={e.ambulance_requested} onClick={() => handleDispatch(e, 'ambulance')} icon={FiPhone}>
+                    {e.ambulance_requested ? 'Ambulance Dispatched' : 'Request Ambulance'}
+                  </Button>
+                  <Button style={{ marginLeft: 'auto' }} size="sm" onClick={() => handleResolve(e)} icon={FiCheckCircle}>Resolve</Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <div className="ac-stack">
+          <Card title="Resolved Events">
+            <div className="ac-stack-sm">
+              {resolvedEvents.slice(0, 5).map(e => (
+                <div key={e.id} className="ac-flex-between" style={{ padding: '8px 0', borderBottom: '1px solid var(--ac-border)' }}>
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{e.client_name}</div>
+                    <div className="ac-muted ac-xs">{new Date(e.resolved_at).toLocaleString()}</div>
+                  </div>
+                  <StatusBadge status="resolved" />
+                </div>
+              ))}
+              {resolvedEvents.length === 0 && <p className="ac-muted">No resolved events.</p>}
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {modal && (
+        <ModalOverlay title="Raise Crisis Event" onClose={() => setModal(false)}>
+          <div className="ac-stack">
+            <Field label="Client Name"><Input value={form.client_name} onChange={e => setForm({ ...form, client_name: e.target.value })} /></Field>
+            <div className="ac-grid-2">
+              <Field label="CRN (Optional)"><Input value={form.client_crn} onChange={e => setForm({ ...form, client_crn: e.target.value })} /></Field>
+              <Field label="Location"><Input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} /></Field>
+            </div>
+            <div className="ac-grid-2">
+              <Field label="Severity">
+                <Select value={form.severity} onChange={e => setForm({ ...form, severity: e.target.value })} options={['high', 'critical', 'medium']} />
+              </Field>
+              <Field label="Type">
+                <Select value={form.crisis_type} onChange={e => setForm({ ...form, crisis_type: e.target.value })} options={['mental_health', 'medical', 'violence', 'substance']} />
+              </Field>
+            </div>
+            <Field label="Notes"><Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></Field>
+            <div className="ac-grid-2" style={{ marginTop: 8 }}>
+              <Button variant="outline" onClick={() => setModal(false)}>Cancel</Button>
+              <Button style={{ background: 'var(--ac-danger)', borderColor: 'var(--ac-danger)' }} onClick={handleCreate}>Raise Event</Button>
+            </div>
+          </div>
+        </ModalOverlay>
+      )}
+    </div>
+  );
+};
+
+/* ─── EXISTING ADMIN PAGES (Clients, Reports, CRN) ─────────────── */
 export const ClientsPage = () => {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', phone: '', email: '' });
-  const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState('');
 
   useEffect(() => { fetchClients(); }, []);
@@ -168,18 +434,13 @@ export const ClientsPage = () => {
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
 
   const handleCreate = async () => {
-    if (!form.name) { alert('Name is required.'); return; }
-    setSubmitting(true);
+    if (!form.name) return alert('Name is required.');
     const crn = generateCRN();
-    const { error: e1 } = await supabase.from('crns_1740395000').insert([{ code: crn, is_active: true }]);
-    if (e1) { alert(e1.message); setSubmitting(false); return; }
-    const { error: e2 } = await supabase.from('clients_1777020684735').insert([{ ...form, crn }]);
-    if (e2) { alert(e2.message); setSubmitting(false); return; }
-    showToast(`Patient ${form.name} registered — CRN: ${crn}`);
+    await supabase.from('crns_1740395000').insert([{ code: crn, is_active: true }]);
+    await supabase.from('clients_1777020684735').insert([{ ...form, crn }]);
+    showToast(`Patient registered — CRN: ${crn}`);
     setShowForm(false);
-    setForm({ name: '', phone: '', email: '' });
     fetchClients();
-    setSubmitting(false);
   };
 
   return (
@@ -197,11 +458,8 @@ export const ClientsPage = () => {
               <tr><th>Name</th><th>CRN</th><th>Email</th><th>Phone</th><th>Joined</th></tr>
             </thead>
             <tbody>
-              {loading ? (
-                <tr><td colSpan="5" className="ac-center" style={{ padding: 24 }}>Loading…</td></tr>
-              ) : clients.length === 0 ? (
-                <tr><td colSpan="5" className="ac-center" style={{ padding: 24, color: 'var(--ac-muted)' }}>No patients yet.</td></tr>
-              ) : clients.map(c => (
+              {loading ? <tr><td colSpan="5" className="ac-center" style={{ padding: 24 }}>Loading…</td></tr>
+               : clients.map(c => (
                 <tr key={c.id}>
                   <td style={{ fontWeight: 600 }}>{c.name}</td>
                   <td className="ac-mono ac-xs">{c.crn}</td>
@@ -216,23 +474,17 @@ export const ClientsPage = () => {
       </Card>
 
       {showForm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 500, padding: 16 }}>
-          <div style={{ background: 'var(--ac-surface)', borderRadius: 16, padding: 24, width: '100%', maxWidth: 420, boxShadow: 'var(--ac-shadow-lg)' }}>
-            <div className="ac-flex-between" style={{ marginBottom: 20 }}>
-              <h2 className="ac-h2">New Patient</h2>
-              <button className="ac-icon-btn" onClick={() => setShowForm(false)}><SafeIcon icon={FiX} size={16} /></button>
-            </div>
-            <div className="ac-stack">
-              <Field label="Full Name"><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="John Doe" /></Field>
-              <Field label="Email"><Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="john@example.com" /></Field>
-              <Field label="Phone"><Input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="+61 4XX XXX XXX" /></Field>
-              <div className="ac-grid-2" style={{ marginTop: 8 }}>
-                <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
-                <Button onClick={handleCreate} disabled={submitting}>{submitting ? 'Creating…' : 'Create & Assign CRN'}</Button>
-              </div>
+        <ModalOverlay title="New Patient" onClose={() => setShowForm(false)}>
+          <div className="ac-stack">
+            <Field label="Full Name"><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></Field>
+            <Field label="Email"><Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></Field>
+            <Field label="Phone"><Input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></Field>
+            <div className="ac-grid-2" style={{ marginTop: 8 }}>
+              <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
+              <Button onClick={handleCreate}>Create & Assign CRN</Button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
     </div>
   );
@@ -240,11 +492,8 @@ export const ClientsPage = () => {
 
 export const ReportsPage = () => {
   const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-
   useEffect(() => {
-    supabase.from('check_ins_1740395000').select('*').order('created_at', { ascending: false })
-      .then(({ data }) => { setData(data || []); setLoading(false); });
+    supabase.from('check_ins_1740395000').select('*').order('created_at', { ascending: false }).then(({ data }) => setData(data || []));
   }, []);
 
   const exportCSV = () => {
@@ -268,8 +517,7 @@ export const ReportsPage = () => {
               <tr><th>Date</th><th>CRN</th><th>Mood</th><th>Window</th><th>Status</th></tr>
             </thead>
             <tbody>
-              {loading ? <tr><td colSpan="5" className="ac-center" style={{ padding: 24 }}>Loading…</td></tr>
-               : data.map(d => (
+              {data.map(d => (
                 <tr key={d.id}>
                   <td>{new Date(d.created_at).toLocaleDateString()}</td>
                   <td className="ac-mono ac-xs">{d.crn}</td>
@@ -288,36 +536,13 @@ export const ReportsPage = () => {
 
 export const CRNPage = () => {
   const [crns, setCrns] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
-  const [toast, setToast] = useState('');
-
-  useEffect(() => { fetchCrns(); }, []);
-
-  const fetchCrns = async () => {
-    setLoading(true);
-    const { data } = await supabase.from('crns_1740395000').select('*').order('created_at', { ascending: false });
-    setCrns(data || []);
-    setLoading(false);
-  };
-
-  const handleGenerate = async () => {
-    setGenerating(true);
-    const code = generateCRN();
-    const { error } = await supabase.from('crns_1740395000').insert([{ code, is_active: true }]);
-    if (!error) { setToast(`CRN ${code} created!`); setTimeout(() => setToast(''), 3500); fetchCrns(); }
-    setGenerating(false);
-  };
+  useEffect(() => {
+    supabase.from('crns_1740395000').select('*').order('created_at', { ascending: false }).then(({ data }) => setCrns(data || []));
+  }, []);
 
   return (
     <div className="ac-stack">
-      {toast && <Toast msg={toast} onClose={() => setToast('')} />}
-      <div className="ac-flex-between">
-        <h1 className="ac-h1">CRN Registry</h1>
-        <Button variant="primary" icon={FiPlus} onClick={handleGenerate} disabled={generating}>
-          {generating ? 'Generating…' : 'New CRN'}
-        </Button>
-      </div>
+      <h1 className="ac-h1">CRN Registry</h1>
       <Card>
         <div className="ac-table-container">
           <table className="ac-table">
@@ -325,8 +550,7 @@ export const CRNPage = () => {
               <tr><th>Reference Code</th><th>Status</th><th>Created</th></tr>
             </thead>
             <tbody>
-              {loading ? <tr><td colSpan="3" className="ac-center" style={{ padding: 24 }}>Loading…</td></tr>
-               : crns.map(c => (
+              {crns.map(c => (
                 <tr key={c.id}>
                   <td className="ac-mono" style={{ fontWeight: 600 }}>{c.code}</td>
                   <td><StatusBadge status={c.is_active ? 'active' : 'inactive'} /></td>

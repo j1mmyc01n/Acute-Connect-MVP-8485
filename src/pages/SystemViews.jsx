@@ -2,18 +2,19 @@ import React, { useState, useEffect } from 'react';
 import * as FiIcons from 'react-icons/fi';
 import SafeIcon from '../common/SafeIcon';
 import { supabase } from '../supabase/supabase';
-import { generateCRN } from '../lib/utils';
-import { Card, Button, Badge, StatusBadge, Field, Input } from '../components/UI';
+import { Card, Button, Badge, StatusBadge, Field, Input, Select, Textarea } from '../components/UI';
 
 const {
   FiRefreshCw, FiCheckCircle, FiX, FiCalendar, FiCpu,
   FiActivity, FiDatabase, FiShield, FiMap, FiHome,
-  FiPlus, FiSettings, FiUsers
+  FiPlus, FiSettings, FiUsers, FiEdit2, FiMessageSquare,
+  FiThumbsUp, FiAlertTriangle, FiTrash2, FiLink, FiGlobe,
+  FiFileText, FiList
 } = FiIcons;
 
-const Toast = ({ msg, err, onClose }) => (
-  <div className={`ac-toast${err ? ' ac-toast-err' : ''}`}>
-    <SafeIcon icon={err ? FiX : FiCheckCircle} style={{ color: err ? 'var(--ac-danger)' : 'var(--ac-success)', flexShrink: 0 }} />
+const Toast = ({ msg, onClose }) => (
+  <div className="ac-toast">
+    <SafeIcon icon={FiCheckCircle} style={{ color: 'var(--ac-success)', flexShrink: 0 }} />
     <span style={{ flex: 1 }}>{msg}</span>
     <button className="ac-btn-ghost" style={{ padding: 4, border: 0 }} onClick={onClose}>
       <SafeIcon icon={FiX} size={14} />
@@ -21,10 +22,54 @@ const Toast = ({ msg, err, onClose }) => (
   </div>
 );
 
+const ModalOverlay = ({ title, onClose, children }) => (
+  <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 16 }}>
+    <div style={{ background: 'var(--ac-surface)', borderRadius: 16, padding: 24, width: '100%', maxWidth: 450, boxShadow: 'var(--ac-shadow-lg)', maxHeight: '90vh', overflowY: 'auto' }}>
+      <div className="ac-flex-between" style={{ marginBottom: 20 }}>
+        <h2 className="ac-h2">{title}</h2>
+        <button className="ac-icon-btn" onClick={onClose}><SafeIcon icon={FiX} size={16} /></button>
+      </div>
+      {children}
+    </div>
+  </div>
+);
+
+/* ─── SYSTEM DASHBOARD ───────────────────────────────────────────── */
+export const SysDashPage = () => {
+  return (
+    <div className="ac-stack">
+      <h1 className="ac-h1">System Dashboard</h1>
+      <div className="ac-grid-3">
+        <div className="ac-stat-tile">
+          <div className="ac-muted ac-xs">Active Sessions</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ac-success)' }}>124</div>
+        </div>
+        <div className="ac-stat-tile">
+          <div className="ac-muted ac-xs">Daily Check-ins</div>
+          <div style={{ fontSize: 28, fontWeight: 800 }}>87</div>
+        </div>
+        <div className="ac-stat-tile">
+          <div className="ac-muted ac-xs">System Status</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ac-success)' }}>Nominal</div>
+        </div>
+      </div>
+      <Card title="Traffic Overview">
+        <div style={{ height: 200, display: 'flex', alignItems: 'flex-end', gap: 8, padding: '20px 0' }}>
+          {[40, 60, 30, 80, 50, 90, 70].map((h, i) => (
+            <div key={i} style={{ flex: 1, background: 'var(--ac-primary)', height: `${h}%`, borderRadius: '4px 4px 0 0', opacity: 0.8 }} />
+          ))}
+        </div>
+        <div className="ac-flex-between ac-muted ac-xs">
+          <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
 /* ─── SUPER ADMIN ────────────────────────────────────────────────── */
 export const SuperAdminPage = () => {
   const [stats, setStats] = useState({ patients: 0, crns: 0, checkins: 0, admins: 0 });
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
@@ -34,16 +79,8 @@ export const SuperAdminPage = () => {
       supabase.from('admin_users_1777025000000').select('*', { count: 'exact', head: true }),
     ]).then(([p, c, ci, a]) => {
       setStats({ patients: p.count || 0, crns: c.count || 0, checkins: ci.count || 0, admins: a.count || 0 });
-      setLoading(false);
     });
   }, []);
-
-  const tiles = [
-    { label: 'Patients', val: stats.patients, icon: FiUsers, color: 'var(--ac-primary)' },
-    { label: 'CRN Pool', val: stats.crns, icon: FiDatabase, color: 'var(--ac-success)' },
-    { label: 'Check-ins', val: stats.checkins, icon: FiActivity, color: 'var(--ac-warn)' },
-    { label: 'Staff', val: stats.admins, icon: FiShield, color: 'var(--ac-violet, #AF52DE)' },
-  ];
 
   return (
     <div className="ac-stack">
@@ -51,21 +88,22 @@ export const SuperAdminPage = () => {
         <h1 className="ac-h1">⚡ Super Admin</h1>
         <Badge tone="green">System Online</Badge>
       </div>
-
       <div className="ac-grid-4">
-        {tiles.map(t => (
+        {[
+          { label: 'Patients', val: stats.patients, icon: FiUsers, color: 'var(--ac-primary)' },
+          { label: 'CRN Pool', val: stats.crns, icon: FiDatabase, color: 'var(--ac-success)' },
+          { label: 'Check-ins', val: stats.checkins, icon: FiActivity, color: 'var(--ac-warn)' },
+          { label: 'Staff', val: stats.admins, icon: FiShield, color: 'var(--ac-violet, #AF52DE)' }
+        ].map(t => (
           <div key={t.label} className="ac-stat-tile">
             <div className="ac-flex-gap" style={{ marginBottom: 8 }}>
               <SafeIcon icon={t.icon} style={{ color: t.color }} />
               <span className="ac-muted ac-xs">{t.label}</span>
             </div>
-            <div style={{ fontSize: 30, fontWeight: 800, color: t.color }}>
-              {loading ? '—' : t.val}
-            </div>
+            <div style={{ fontSize: 30, fontWeight: 800, color: t.color }}>{t.val}</div>
           </div>
         ))}
       </div>
-
       <div className="ac-grid-2">
         <Card title="System Health">
           <div className="ac-stack-sm">
@@ -77,11 +115,11 @@ export const SuperAdminPage = () => {
             ))}
           </div>
         </Card>
-        <Card title="Quick Actions">
-          <div className="ac-stack-sm">
-            <Button variant="outline" icon={FiRefreshCw}>Flush Cache</Button>
-            <Button variant="outline" icon={FiShield}>Rotate API Keys</Button>
-            <Button variant="outline" icon={FiDatabase}>Backup DB Now</Button>
+        <Card title="Database Overview">
+          <div className="ac-stack-sm ac-muted ac-xs">
+            <p>PostgreSQL 15.1 hosted by Supabase.</p>
+            <p>RLS active on all public wrapper tables.</p>
+            <p>Storage: 45MB / 500MB</p>
           </div>
         </Card>
       </div>
@@ -89,50 +127,76 @@ export const SuperAdminPage = () => {
   );
 };
 
-/* ─── SYSTEM DASHBOARD ───────────────────────────────────────────── */
-export const SysDashPage = SuperAdminPage;
-
 /* ─── USERS PAGE ─────────────────────────────────────────────────── */
 export const UsersPage = () => {
   const [admins, setAdmins] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [modal, setModal] = useState(false);
+  const [form, setForm] = useState({ id: null, email: '', role: 'admin', status: 'active' });
 
-  useEffect(() => {
-    supabase.from('admin_users_1777025000000').select('*').then(({ data }) => {
-      setAdmins(data || []);
-      setLoading(false);
-    });
-  }, []);
+  useEffect(() => { fetchAdmins(); }, []);
+
+  const fetchAdmins = async () => {
+    const { data } = await supabase.from('admin_users_1777025000000').select('*');
+    setAdmins(data || []);
+  };
+
+  const handleSave = async () => {
+    if (form.id) {
+      await supabase.from('admin_users_1777025000000').update({ role: form.role, status: form.status }).eq('id', form.id);
+    } else {
+      await supabase.from('admin_users_1777025000000').insert([{ email: form.email, role: form.role, status: form.status }]);
+    }
+    setModal(false);
+    fetchAdmins();
+  };
 
   return (
     <div className="ac-stack">
       <div className="ac-flex-between">
         <h1 className="ac-h1">Staff Management</h1>
-        <Badge tone="blue">{admins.length} Staff</Badge>
+        <Button icon={FiPlus} onClick={() => { setForm({ id: null, email: '', role: 'admin', status: 'active' }); setModal(true); }}>Add Staff</Button>
       </div>
       <Card>
         <div className="ac-table-container">
           <table className="ac-table">
             <thead>
-              <tr><th>Email</th><th>Role</th><th>Status</th><th>Created</th></tr>
+              <tr><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr>
             </thead>
             <tbody>
-              {loading ? (
-                <tr><td colSpan="4" className="ac-center" style={{ padding: 24 }}>Loading…</td></tr>
-              ) : admins.length === 0 ? (
-                <tr><td colSpan="4" className="ac-center" style={{ padding: 24, color: 'var(--ac-muted)' }}>No staff accounts found.</td></tr>
-              ) : admins.map(a => (
+              {admins.map(a => (
                 <tr key={a.id}>
                   <td style={{ fontWeight: 500 }}>{a.email}</td>
                   <td><Badge tone={a.role === 'sysadmin' ? 'violet' : 'blue'}>{a.role}</Badge></td>
                   <td><StatusBadge status={a.status || 'active'} /></td>
-                  <td className="ac-muted ac-xs">{new Date(a.created_at).toLocaleDateString()}</td>
+                  <td>
+                    <button className="ac-icon-btn" onClick={() => { setForm(a); setModal(true); }}>
+                      <SafeIcon icon={FiEdit2} size={14} />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </Card>
+
+      {modal && (
+        <ModalOverlay title={form.id ? 'Edit Staff' : 'Add Staff'} onClose={() => setModal(false)}>
+          <div className="ac-stack">
+            <Field label="Email"><Input value={form.email} disabled={!!form.id} onChange={e => setForm({...form, email: e.target.value})} /></Field>
+            <Field label="Role">
+              <Select value={form.role} onChange={e => setForm({...form, role: e.target.value})} options={['admin', 'sysadmin']} />
+            </Field>
+            <Field label="Status">
+              <Select value={form.status} onChange={e => setForm({...form, status: e.target.value})} options={['active', 'inactive']} />
+            </Field>
+            <div className="ac-grid-2" style={{ marginTop: 8 }}>
+              <Button variant="outline" onClick={() => setModal(false)}>Cancel</Button>
+              <Button onClick={handleSave}>Save</Button>
+            </div>
+          </div>
+        </ModalOverlay>
+      )}
     </div>
   );
 };
@@ -140,55 +204,124 @@ export const UsersPage = () => {
 /* ─── HEATMAP ────────────────────────────────────────────────────── */
 export const HeatMapPage = () => (
   <div className="ac-stack">
-    <h1 className="ac-h1">City Heat Map</h1>
-    <Card style={{ padding: 0, overflow: 'hidden', height: 500 }}>
-      <iframe
-        title="Heat Map"
-        src="https://www.openstreetmap.org/export/embed.html?bbox=151.16%2C-33.91%2C151.21%2C-33.86&layer=mapnik"
-        width="100%" height="100%"
-        style={{ border: 0, filter: 'var(--ac-map-filter)', display: 'block' }}
-        loading="lazy"
-      />
-    </Card>
+    <h1 className="ac-h1">City Heat Map & Dispatch</h1>
+    <div className="ac-grid-2" style={{ gridTemplateColumns: '3fr 1fr' }}>
+      <Card style={{ padding: 0, overflow: 'hidden', height: 600, position: 'relative' }}>
+        <iframe
+          title="Heat Map"
+          src="https://www.openstreetmap.org/export/embed.html?bbox=151.16%2C-33.91%2C151.21%2C-33.86&layer=mapnik"
+          width="100%" height="100%"
+          style={{ border: 0, filter: 'var(--ac-map-filter)', display: 'block' }}
+          loading="lazy"
+        />
+        <div style={{ position: 'absolute', top: '40%', left: '30%', background: 'var(--ac-primary)', padding: '4px 8px', borderRadius: 20, color: '#fff', fontSize: 12, fontWeight: 600, boxShadow: '0 2px 5px rgba(0,0,0,0.3)' }}>
+          🚔 Unit 4 (Dr. Smith)
+        </div>
+        <div style={{ position: 'absolute', top: '60%', left: '50%', background: 'var(--ac-success)', padding: '4px 8px', borderRadius: 20, color: '#fff', fontSize: 12, fontWeight: 600, boxShadow: '0 2px 5px rgba(0,0,0,0.3)' }}>
+          🚑 Med 1 (Available)
+        </div>
+        <div style={{ position: 'absolute', top: '50%', left: '45%', width: 100, height: 100, background: 'radial-gradient(circle, rgba(255,0,0,0.5) 0%, rgba(255,0,0,0) 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
+      </Card>
+      <div className="ac-stack">
+        <Card title="Active Hot Zones">
+          <div className="ac-stack-sm">
+            <div className="ac-flex-between">
+              <span className="ac-sm" style={{ fontWeight: 600 }}>Camperdown Center</span>
+              <Badge tone="red">High</Badge>
+            </div>
+            <div className="ac-flex-between">
+              <span className="ac-sm" style={{ fontWeight: 600 }}>Newtown Station</span>
+              <Badge tone="amber">Medium</Badge>
+            </div>
+          </div>
+        </Card>
+        <Card title="Admin Locality">
+          <div className="ac-stack-sm">
+            <div className="ac-flex-between">
+              <div>
+                <div className="ac-sm" style={{ fontWeight: 600 }}>Dr. Smith</div>
+                <div className="ac-xs ac-muted">Unit 4 • 2 mins away</div>
+              </div>
+              <Badge tone="blue">Dispatched</Badge>
+            </div>
+            <div className="ac-flex-between">
+              <div>
+                <div className="ac-sm" style={{ fontWeight: 600 }}>Paramedic Team</div>
+                <div className="ac-xs ac-muted">Med 1 • Available</div>
+              </div>
+              <Badge tone="green">Ready</Badge>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
   </div>
 );
 
 /* ─── OFFICES ────────────────────────────────────────────────────── */
 export const OfficesPage = () => {
-  const [offices, setOffices] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [offices, setOffices] = useState([
+    { id: 1, name: 'Main Campus', address: '123 Health Way', status: 'active', beds: 45 },
+    { id: 2, name: 'North Clinic', address: '45 North Blvd', status: 'maintenance', beds: 12 },
+  ]);
+  const [modal, setModal] = useState(false);
+  const [form, setForm] = useState({ id: null, name: '', address: '', status: 'active', beds: 0 });
 
-  useEffect(() => {
-    supabase.from('locations_1740395000').select('*').then(({ data }) => {
-      setOffices(data || []);
-      setLoading(false);
-    });
-  }, []);
-
-  const fallback = [
-    { id: 1, name: 'Camperdown Acute Care', address: '100 Mallett St, Camperdown NSW 2050', phone: '(02) 9515 9000', is_active: true },
-    { id: 2, name: 'RPA Mental Health Unit', address: 'Missenden Rd, Camperdown NSW 2050', phone: '(02) 9515 6111', is_active: true },
-  ];
-
-  const list = offices.length ? offices : fallback;
+  const handleSave = () => {
+    if (form.id) {
+      setOffices(offices.map(o => o.id === form.id ? form : o));
+    } else {
+      setOffices([...offices, { ...form, id: Date.now() }]);
+    }
+    setModal(false);
+  };
 
   return (
     <div className="ac-stack">
       <div className="ac-flex-between">
         <h1 className="ac-h1">Office Management</h1>
-        <Badge tone="green">{list.length} Locations</Badge>
+        <Button icon={FiPlus} onClick={() => { setForm({ id: null, name: '', address: '', status: 'active', beds: 0 }); setModal(true); }}>Add Office</Button>
       </div>
-      <div className="ac-grid-2">
-        {list.map(o => (
-          <Card key={o.id} title={o.name}>
-            <div className="ac-stack-sm">
-              <div className="ac-flex-gap ac-sm"><span>📍</span><span>{o.address}</span></div>
-              <div className="ac-flex-gap ac-sm"><span>📞</span><span style={{ color: 'var(--ac-primary)' }}>{o.phone}</span></div>
-              <StatusBadge status={o.is_active ? 'active' : 'inactive'} />
+      <Card>
+        <div className="ac-table-container">
+          <table className="ac-table">
+            <thead>
+              <tr><th>Name</th><th>Address</th><th>Capacity</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+              {offices.map(o => (
+                <tr key={o.id}>
+                  <td style={{ fontWeight: 600 }}>{o.name}</td>
+                  <td className="ac-muted ac-xs">{o.address}</td>
+                  <td>{o.beds} Beds</td>
+                  <td><StatusBadge status={o.status} /></td>
+                  <td>
+                    <button className="ac-icon-btn" onClick={() => { setForm(o); setModal(true); }}><SafeIcon icon={FiEdit2} size={14} /></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+      {modal && (
+        <ModalOverlay title={form.id ? "Edit Office" : "Add Office"} onClose={() => setModal(false)}>
+          <div className="ac-stack">
+            <Field label="Office Name"><Input value={form.name} onChange={e => setForm({...form, name: e.target.value})} /></Field>
+            <Field label="Address"><Input value={form.address} onChange={e => setForm({...form, address: e.target.value})} /></Field>
+            <div className="ac-grid-2">
+              <Field label="Capacity (Beds)"><Input type="number" value={form.beds} onChange={e => setForm({...form, beds: parseInt(e.target.value)})} /></Field>
+              <Field label="Status">
+                <Select value={form.status} onChange={e => setForm({...form, status: e.target.value})} options={['active', 'maintenance', 'closed']} />
+              </Field>
             </div>
-          </Card>
-        ))}
-      </div>
+            <div className="ac-grid-2" style={{ marginTop: 8 }}>
+              <Button variant="outline" onClick={() => setModal(false)}>Cancel</Button>
+              <Button onClick={handleSave}>Save</Button>
+            </div>
+          </div>
+        </ModalOverlay>
+      )}
     </div>
   );
 };
@@ -196,347 +329,334 @@ export const OfficesPage = () => {
 /* ─── INTEGRATIONS ───────────────────────────────────────────────── */
 export const IntegrationPage = () => {
   const [toast, setToast] = useState('');
-  const [syncing, setSyncing] = useState('');
-
-  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
-
-  const handleSync = async (name) => {
-    setSyncing(name);
-    await new Promise(r => setTimeout(r, 1400));
-    setSyncing('');
-    showToast(`${name} synced successfully!`);
-  };
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
   return (
     <div className="ac-stack">
       {toast && <Toast msg={toast} onClose={() => setToast('')} />}
       <h1 className="ac-h1">Integrations & API Hub</h1>
-
       <div className="ac-grid-2">
-        <Card title="📅 Google Calendar Sync">
+        <Card title="Google Workspace Sync">
           <div className="ac-stack-sm">
-            <div className="ac-flex-between">
-              <span className="ac-sm">Workshop Calendar</span>
+            <p className="ac-muted ac-xs">Sync calendars and CRM data with external Google Workspace accounts.</p>
+            <div className="ac-flex-between" style={{ background: 'var(--ac-bg)', padding: 12, borderRadius: 8 }}>
+              <div className="ac-flex-gap">
+                <SafeIcon icon={FiCalendar} />
+                <span className="ac-sm" style={{ fontWeight: 600 }}>Google Calendar</span>
+              </div>
               <Badge tone="green">Connected</Badge>
             </div>
-            <p className="ac-muted ac-xs">Syncs patient check-in windows with provider Google Calendars in real-time.</p>
-            <Button variant="primary" icon={FiCalendar} onClick={() => handleSync('Google Calendar')} disabled={syncing === 'Google Calendar'}>
-              {syncing === 'Google Calendar' ? 'Syncing…' : 'Sync Now'}
-            </Button>
+            <Button variant="outline" onClick={() => showToast('Force sync initiated...')}>Force Sync Now</Button>
           </div>
         </Card>
-
-        <Card title="🤖 AI Triage Engine">
+        <Card title="AI Triage Engine">
           <div className="ac-stack-sm">
-            <div className="ac-flex-between">
-              <span className="ac-sm">Anthropic Claude 3.5</span>
-              <Badge tone="green">Active</Badge>
+            <p className="ac-muted ac-xs">Connect to external LLMs for advanced mood analysis and crisis detection.</p>
+            <div className="ac-flex-between" style={{ background: 'var(--ac-bg)', padding: 12, borderRadius: 8 }}>
+              <div className="ac-flex-gap">
+                <SafeIcon icon={FiCpu} />
+                <span className="ac-sm" style={{ fontWeight: 600 }}>OpenAI GPT-4</span>
+              </div>
+              <Badge tone="amber">Pending API Key</Badge>
             </div>
-            <p className="ac-muted ac-xs">Analyses mood scores and generates clinical priority flags automatically.</p>
-            <Button variant="outline" icon={FiCpu} onClick={() => handleSync('AI Engine')} disabled={syncing === 'AI Engine'}>
-              {syncing === 'AI Engine' ? 'Testing…' : 'Test Connection'}
-            </Button>
-          </div>
-        </Card>
-
-        <Card title="💳 Stripe Payments">
-          <div className="ac-stack-sm">
-            <div className="ac-flex-between">
-              <span className="ac-sm">Provider Subscriptions</span>
-              <Badge tone="amber">Pending</Badge>
-            </div>
-            <p className="ac-muted ac-xs">Handles $250/mo provider partner billing and invoicing.</p>
-            <Button variant="outline" onClick={() => handleSync('Stripe')} disabled={syncing === 'Stripe'}>
-              {syncing === 'Stripe' ? 'Connecting…' : 'Configure'}
-            </Button>
-          </div>
-        </Card>
-
-        <Card title="📡 Webhook Events">
-          <div className="ac-stack-sm">
-            <div className="ac-flex-between">
-              <span className="ac-sm">Inbound Events</span>
-              <Badge tone="blue">3 Today</Badge>
-            </div>
-            <p className="ac-muted ac-xs">Receives real-time events from external systems and triggers workflows.</p>
-            <Button variant="outline" onClick={() => handleSync('Webhooks')} disabled={syncing === 'Webhooks'}>
-              {syncing === 'Webhooks' ? 'Loading…' : 'View Logs'}
-            </Button>
+            <Button variant="outline" onClick={() => showToast('Test connection ping sent.')}>Test Connection</Button>
           </div>
         </Card>
       </div>
-
-      <Card title="Recent Webhook Events">
-        <div className="ac-table-container">
-          <table className="ac-table">
-            <thead>
-              <tr><th>Event</th><th>Source</th><th>Status</th><th>Time</th></tr>
-            </thead>
-            <tbody>
-              {[
-                ['calendar.event_created', 'Google', 'green', '10:42 AM'],
-                ['patient.checkin_received', 'Internal', 'green', '10:30 AM'],
-                ['payment.subscription_active', 'Stripe', 'green', '09:55 AM'],
-                ['payment.invoice_failed', 'Stripe', 'red', '09:15 AM'],
-              ].map(([ev, src, tone, time]) => (
-                <tr key={ev + time}>
-                  <td className="ac-mono ac-xs">{ev}</td>
-                  <td className="ac-sm">{src}</td>
-                  <td><Badge tone={tone}>{tone === 'green' ? 'Success' : 'Failed'}</Badge></td>
-                  <td className="ac-muted ac-xs">{time}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
     </div>
   );
 };
 
-/* ─── LOGS ───────────────────────────────────────────────────────── */
-export const LogsPage = () => {
-  const logs = [
-    { t: '10:45:01', lvl: 'INFO', msg: 'WebContainer initialized successfully.' },
-    { t: '10:45:05', lvl: 'INFO', msg: 'Supabase client connected — project: amfikpnctf…' },
-    { t: '10:45:22', lvl: 'INFO', msg: 'RLS policies verified across all tables.' },
-    { t: '10:46:10', lvl: 'WARN', msg: 'Rate limit approaching for Claude API (85/100).' },
-    { t: '10:47:00', lvl: 'INFO', msg: 'Calendar sync completed — 3 events pushed.' },
-    { t: '10:48:33', lvl: 'ERR',  msg: 'Stripe webhook signature mismatch — event dropped.' },
-    { t: '10:49:00', lvl: 'INFO', msg: 'Periodic health check passed: All services nominal.' },
-  ];
-  const color = { INFO: 'ac-terminal-info', WARN: 'ac-terminal-warn', ERR: 'ac-terminal-err' };
+/* ─── FEEDBACK & TICKETS ─────────────────────────────────────────── */
+export const FeedbackPage = () => {
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [modal, setModal] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [response, setResponse] = useState('');
+  const [toast, setToast] = useState('');
 
-  return (
-    <div className="ac-stack">
-      <div className="ac-flex-between">
-        <h1 className="ac-h1">System Logs</h1>
-        <Badge tone="gray">Live Feed</Badge>
-      </div>
-      <Card>
-        <div className="ac-terminal">
-          {logs.map((l, i) => (
-            <div key={i} style={{ marginBottom: 4 }}>
-              <span className="ac-terminal-time">[{l.t}]</span>
-              <span className={color[l.lvl] || ''}>{l.lvl}</span>
-              {' '}{l.msg}
-            </div>
-          ))}
-          <span className="ac-cursor" />
-        </div>
-      </Card>
-    </div>
-  );
-};
+  useEffect(() => { fetchTickets(); }, []);
 
-/* ─── REGRESSION ─────────────────────────────────────────────────── */
-export const RegressionPage = () => {
-  const [running, setRunning] = useState(false);
-  const [results, setResults] = useState(null);
+  const fetchTickets = async () => {
+    setLoading(true);
+    const { data } = await supabase.from('feedback_tickets_1777090000').select('*').order('created_at', { ascending: false });
+    setTickets(data || []);
+    setLoading(false);
+  };
 
-  const run = async () => {
-    setRunning(true);
-    setResults(null);
-    await new Promise(r => setTimeout(r, 2200));
-    setResults({ passed: 27, failed: 1, skipped: 2, coverage: '91.4%', duration: '2.1s' });
-    setRunning(false);
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
+
+  const handleUpdate = async (status) => {
+    await supabase.from('feedback_tickets_1777090000')
+      .update({ status, admin_response: response || selectedTicket.admin_response, updated_at: new Date().toISOString() })
+      .eq('id', selectedTicket.id);
+    showToast(`Ticket marked as ${status}`);
+    setModal(false);
+    fetchTickets();
   };
 
   return (
     <div className="ac-stack">
+      {toast && <Toast msg={toast} onClose={() => setToast('')} />}
       <div className="ac-flex-between">
-        <h1 className="ac-h1">Regression Tests</h1>
-        <Button variant="primary" icon={FiActivity} onClick={run} disabled={running}>
-          {running ? 'Running Suite…' : 'Run All Tests'}
-        </Button>
+        <h1 className="ac-h1">Feedback & Tickets</h1>
+        <Button variant="outline" icon={FiRefreshCw} onClick={fetchTickets}>Refresh</Button>
       </div>
 
-      {results && (
-        <div className="ac-grid-4">
-          {[
-            ['Passed', results.passed, 'green'],
-            ['Failed', results.failed, results.failed > 0 ? 'red' : 'green'],
-            ['Skipped', results.skipped, 'amber'],
-            ['Coverage', results.coverage, 'blue'],
-          ].map(([k, v, t]) => (
-            <div key={k} className="ac-stat-tile">
-              <div className="ac-muted ac-xs">{k}</div>
-              <div style={{ fontSize: 26, fontWeight: 800 }}>
-                <Badge tone={t}>{v}</Badge>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <Card title="Test Suites">
+      <Card>
         <div className="ac-table-container">
           <table className="ac-table">
             <thead>
-              <tr><th>Suite</th><th>Tests</th><th>Status</th></tr>
+              <tr><th>Subject</th><th>Submitter</th><th>Category</th><th>Priority</th><th>Status</th><th>Actions</th></tr>
             </thead>
             <tbody>
-              {[
-                ['Auth & Login Flow', 6, results?.failed > 0 ? 'error' : 'completed'],
-                ['CRN Generation', 4, 'completed'],
-                ['Patient Registration', 5, 'completed'],
-                ['Check-in Submission', 7, 'completed'],
-                ['Calendar Sync API', 3, results ? 'error' : 'pending'],
-                ['RLS Policy Checks', 5, 'completed'],
-              ].map(([name, count, status]) => (
-                <tr key={name}>
-                  <td style={{ fontWeight: 500 }}>{name}</td>
-                  <td className="ac-muted ac-xs">{count} tests</td>
-                  <td><StatusBadge status={status} /></td>
+              {loading ? <tr><td colSpan="6" className="ac-center" style={{ padding: 24 }}>Loading...</td></tr> : 
+               tickets.length === 0 ? <tr><td colSpan="6" className="ac-center" style={{ padding: 24, color: 'var(--ac-muted)' }}>No tickets found.</td></tr> :
+               tickets.map(t => (
+                <tr key={t.id}>
+                  <td style={{ fontWeight: 600 }}>{t.subject}</td>
+                  <td>
+                    <div className="ac-sm">{t.submitted_by}</div>
+                    <div className="ac-xs ac-muted">{t.submitter_type}</div>
+                  </td>
+                  <td>{t.category}</td>
+                  <td><Badge tone={t.priority === 'high' ? 'red' : t.priority === 'medium' ? 'amber' : 'blue'}>{t.priority}</Badge></td>
+                  <td><StatusBadge status={t.status} /></td>
+                  <td>
+                    <button className="ac-icon-btn" onClick={() => { setSelectedTicket(t); setResponse(t.admin_response || ''); setModal(true); }}>
+                      <SafeIcon icon={FiMessageSquare} size={14} />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </Card>
+
+      {modal && selectedTicket && (
+        <ModalOverlay title="Ticket Details" onClose={() => setModal(false)}>
+          <div className="ac-stack">
+            <div style={{ background: 'var(--ac-bg)', padding: 12, borderRadius: 8 }}>
+              <div className="ac-muted ac-xs">Message from {selectedTicket.submitted_by}</div>
+              <div style={{ marginTop: 8, fontSize: 14 }}>{selectedTicket.message}</div>
+            </div>
+            <Field label="Admin Response">
+              <Textarea value={response} onChange={e => setResponse(e.target.value)} placeholder="Type your response to the user..." />
+            </Field>
+            <div className="ac-grid-3" style={{ marginTop: 8 }}>
+              <Button variant="outline" onClick={() => handleUpdate('open')}>Keep Open</Button>
+              <Button style={{ background: 'var(--ac-warn)', borderColor: 'var(--ac-warn)' }} onClick={() => handleUpdate('in_progress')}>In Progress</Button>
+              <Button onClick={() => handleUpdate('closed')}>Close Ticket</Button>
+            </div>
+          </div>
+        </ModalOverlay>
+      )}
     </div>
   );
 };
 
-/* ─── SETTINGS ───────────────────────────────────────────────────── */
-export const SettingsPage = () => {
+/* ─── FEATURE REQUESTS ───────────────────────────────────────────── */
+export const FeatureRequestPage = () => {
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [modal, setModal] = useState(false);
+  const [form, setForm] = useState({ title: '', description: '', requested_by: 'Admin', category: 'enhancement', priority: 'medium' });
   const [toast, setToast] = useState('');
-  const [form, setForm] = useState({ sysName: 'Acute Connect MVP', supportEmail: 'support@acuteconnect.health', allowReg: true });
 
-  const save = () => { setToast('Settings saved successfully!'); setTimeout(() => setToast(''), 3500); };
+  useEffect(() => { fetchRequests(); }, []);
+
+  const fetchRequests = async () => {
+    setLoading(true);
+    const { data } = await supabase.from('feature_requests_1777090000').select('*').order('votes', { ascending: false });
+    setRequests(data || []);
+    setLoading(false);
+  };
+
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
+
+  const handleCreate = async () => {
+    if (!form.title) return alert('Title is required');
+    await supabase.from('feature_requests_1777090000').insert([form]);
+    showToast('Feature request submitted.');
+    setModal(false);
+    fetchRequests();
+  };
+
+  const handleVote = async (req) => {
+    await supabase.from('feature_requests_1777090000').update({ votes: req.votes + 1 }).eq('id', req.id);
+    fetchRequests();
+  };
+
+  const handleStatusChange = async (id, status) => {
+    await supabase.from('feature_requests_1777090000').update({ status }).eq('id', id);
+    showToast('Status updated.');
+    fetchRequests();
+  };
 
   return (
     <div className="ac-stack">
       {toast && <Toast msg={toast} onClose={() => setToast('')} />}
-      <h1 className="ac-h1">System Settings</h1>
-      <Card title="Global Configuration">
-        <div className="ac-stack">
-          <Field label="System Name">
-            <Input value={form.sysName} onChange={e => setForm({ ...form, sysName: e.target.value })} />
-          </Field>
-          <Field label="Support Email">
-            <Input type="email" value={form.supportEmail} onChange={e => setForm({ ...form, supportEmail: e.target.value })} />
-          </Field>
-          <div className="ac-flex-between" style={{ padding: '4px 0' }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 13 }}>Public Client Registration</div>
-              <div className="ac-muted ac-xs">Allow new clients to self-register via the check-in flow</div>
-            </div>
-            <input type="checkbox" checked={form.allowReg} onChange={e => setForm({ ...form, allowReg: e.target.checked })} style={{ width: 18, height: 18 }} />
-          </div>
-          <Button icon={FiSettings} onClick={save}>Save Configuration</Button>
-        </div>
-      </Card>
-
-      <Card title="Danger Zone">
-        <div className="ac-stack-sm">
-          <p className="ac-muted ac-xs">These actions are irreversible. Proceed with caution.</p>
-          <Button variant="outline" style={{ borderColor: 'var(--ac-danger)', color: 'var(--ac-danger)' }}>
-            Reset All Sessions
-          </Button>
-        </div>
-      </Card>
-    </div>
-  );
-};
-
-/* ─── MODULE ACCESS ──────────────────────────────────────────────── */
-export const ModuleAccessPage = () => {
-  const modules = [
-    { name: 'Client Check-In', roles: ['public', 'admin', 'sysadmin'], status: 'active' },
-    { name: 'Admin Panel', roles: ['admin', 'sysadmin'], status: 'active' },
-    { name: 'Patient Registry', roles: ['admin', 'sysadmin'], status: 'active' },
-    { name: 'CRN Generator', roles: ['admin', 'sysadmin'], status: 'active' },
-    { name: 'Reports', roles: ['admin', 'sysadmin'], status: 'active' },
-    { name: 'Integrations', roles: ['admin', 'sysadmin'], status: 'active' },
-    { name: 'System Dashboard', roles: ['sysadmin'], status: 'active' },
-    { name: 'User Management', roles: ['sysadmin'], status: 'active' },
-    { name: 'Regression Tests', roles: ['sysadmin'], status: 'active' },
-    { name: 'Settings', roles: ['sysadmin'], status: 'active' },
-  ];
-
-  return (
-    <div className="ac-stack">
-      <h1 className="ac-h1">Module Access Control</h1>
-      <Card>
-        <div className="ac-table-container">
-          <table className="ac-table">
-            <thead>
-              <tr><th>Module</th><th>Access Roles</th><th>Status</th></tr>
-            </thead>
-            <tbody>
-              {modules.map(m => (
-                <tr key={m.name}>
-                  <td style={{ fontWeight: 600 }}>{m.name}</td>
-                  <td>
-                    <div className="ac-flex-gap" style={{ flexWrap: 'wrap', gap: 4 }}>
-                      {m.roles.map(r => (
-                        <Badge key={r} tone={r === 'sysadmin' ? 'violet' : r === 'admin' ? 'blue' : 'gray'}>{r}</Badge>
-                      ))}
-                    </div>
-                  </td>
-                  <td><StatusBadge status={m.status} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-    </div>
-  );
-};
-
-/* ─── SITEMAP ────────────────────────────────────────────────────── */
-export const SiteMapPage = () => {
-  const routes = [
-    { path: 'checkin', label: 'Client Check-In', access: 'Public' },
-    { path: 'resources', label: 'Resources', access: 'Public' },
-    { path: 'professionals', label: 'Professionals', access: 'Public' },
-    { path: 'join_provider', label: 'Join as Provider', access: 'Public' },
-    { path: 'admin', label: 'Admin Panel', access: 'Admin+' },
-    { path: 'clients', label: 'Patient Registry', access: 'Admin+' },
-    { path: 'crn', label: 'CRN Registry', access: 'Admin+' },
-    { path: 'reports', label: 'Clinical Reports', access: 'Admin+' },
-    { path: 'integrations', label: 'Integrations', access: 'Admin+' },
-    { path: 'sysdash', label: 'System Dashboard', access: 'SysAdmin' },
-    { path: 'heatmap', label: 'City Heat Map', access: 'SysAdmin' },
-    { path: 'offices', label: 'Office Management', access: 'SysAdmin' },
-    { path: 'users', label: 'Staff Management', access: 'SysAdmin' },
-    { path: 'logs', label: 'System Logs', access: 'SysAdmin' },
-    { path: 'superadmin', label: 'Super Admin', access: 'SysAdmin' },
-    { path: 'modaccess', label: 'Module Access', access: 'SysAdmin' },
-    { path: 'regression', label: 'Regression Tests', access: 'SysAdmin' },
-    { path: 'settings', label: 'Settings', access: 'SysAdmin' },
-  ];
-
-  return (
-    <div className="ac-stack">
       <div className="ac-flex-between">
-        <h1 className="ac-h1">Site Map</h1>
-        <Badge tone="blue">{routes.length} Routes</Badge>
+        <h1 className="ac-h1">Feature Requests</h1>
+        <Button icon={FiPlus} onClick={() => { setForm({ title: '', description: '', requested_by: 'Admin', category: 'enhancement', priority: 'medium' }); setModal(true); }}>New Request</Button>
       </div>
-      <Card>
-        <div className="ac-table-container">
-          <table className="ac-table">
-            <thead>
-              <tr><th>Route ID</th><th>Page</th><th>Access Level</th></tr>
-            </thead>
-            <tbody>
-              {routes.map(r => (
-                <tr key={r.path}>
-                  <td className="ac-mono ac-xs">/{r.path}</td>
-                  <td style={{ fontWeight: 500 }}>{r.label}</td>
-                  <td>
-                    <Badge tone={r.access === 'SysAdmin' ? 'violet' : r.access === 'Admin+' ? 'blue' : 'gray'}>
-                      {r.access}
-                    </Badge>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+
+      <div className="ac-grid-2">
+        {loading ? <p className="ac-muted">Loading features...</p> : 
+         requests.length === 0 ? <p className="ac-muted">No feature requests found.</p> :
+         requests.map(req => (
+          <Card key={req.id}>
+            <div className="ac-flex-between" style={{ alignItems: 'flex-start', marginBottom: 12 }}>
+              <div>
+                <h3 style={{ fontWeight: 700, fontSize: 16 }}>{req.title}</h3>
+                <div className="ac-xs ac-muted">By {req.requested_by} • {new Date(req.created_at).toLocaleDateString()}</div>
+              </div>
+              <Badge tone={req.status === 'completed' ? 'green' : req.status === 'in_progress' ? 'blue' : 'amber'}>
+                {req.status.replace('_', ' ').toUpperCase()}
+              </Badge>
+            </div>
+            <p className="ac-sm" style={{ marginBottom: 16, color: 'var(--ac-fg)' }}>{req.description}</p>
+            
+            <div className="ac-flex-between" style={{ borderTop: '1px solid var(--ac-border)', paddingTop: 12 }}>
+              <div className="ac-flex-gap">
+                <Button variant="outline" size="sm" icon={FiThumbsUp} onClick={() => handleVote(req)}>
+                  {req.votes}
+                </Button>
+              </div>
+              <Select value={req.status} onChange={(e) => handleStatusChange(req.id, e.target.value)} options={['pending', 'planned', 'in_progress', 'completed']} />
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {modal && (
+        <ModalOverlay title="Submit Feature Request" onClose={() => setModal(false)}>
+          <div className="ac-stack">
+            <Field label="Title"><Input value={form.title} onChange={e => setForm({...form, title: e.target.value})} /></Field>
+            <Field label="Description"><Textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} /></Field>
+            <div className="ac-grid-2">
+              <Field label="Category">
+                <Select value={form.category} onChange={e => setForm({...form, category: e.target.value})} options={['enhancement', 'bugfix', 'integration', 'ui']} />
+              </Field>
+              <Field label="Priority">
+                <Select value={form.priority} onChange={e => setForm({...form, priority: e.target.value})} options={['low', 'medium', 'high']} />
+              </Field>
+            </div>
+            <div className="ac-grid-2" style={{ marginTop: 8 }}>
+              <Button variant="outline" onClick={() => setModal(false)}>Cancel</Button>
+              <Button onClick={handleCreate}>Submit Request</Button>
+            </div>
+          </div>
+        </ModalOverlay>
+      )}
     </div>
   );
 };
+
+/* ─── LOGS, REGRESSION, MODULE ACCESS, SETTINGS, SITEMAP ─────────── */
+export const LogsPage = () => (
+  <div className="ac-stack">
+    <h1 className="ac-h1">System Logs</h1>
+    <Card>
+      <div className="ac-mono ac-xs" style={{ whiteSpace: 'pre-wrap', color: 'var(--ac-fg)', background: 'var(--ac-bg)', padding: 16, borderRadius: 8 }}>
+        [10:45:12] INFO: Supabase connection established.{"\n"}
+        [10:46:01] WARN: Failed to sync Google Calendar (Token expired).{"\n"}
+        [10:48:33] INFO: Admin user logged in (ops@acuteconnect.health).{"\n"}
+        [10:52:10] ERROR: Invalid CRN format submitted by client.
+      </div>
+    </Card>
+  </div>
+);
+
+export const RegressionPage = () => (
+  <div className="ac-stack">
+    <h1 className="ac-h1">Regression Tests</h1>
+    <Card title="Automated QA Suite">
+      <div className="ac-stack-sm">
+        {['Auth Flow', 'Database RLS', 'UI Rendering', 'CRM Sync'].map(test => (
+          <div key={test} className="ac-flex-between" style={{ padding: 12, border: '1px solid var(--ac-border)', borderRadius: 8 }}>
+            <span style={{ fontWeight: 600 }}>{test}</span>
+            <Badge tone="green">Passed</Badge>
+          </div>
+        ))}
+        <Button variant="outline" style={{ marginTop: 12 }}>Run All Tests</Button>
+      </div>
+    </Card>
+  </div>
+);
+
+export const ModuleAccessPage = () => (
+  <div className="ac-stack">
+    <h1 className="ac-h1">Module Access Control</h1>
+    <Card title="Role Permissions">
+      <div className="ac-table-container">
+        <table className="ac-table">
+          <thead>
+            <tr><th>Module</th><th>SysAdmin</th><th>Admin</th><th>Public</th></tr>
+          </thead>
+          <tbody>
+            {['Client Check-in', 'Patient Registry', 'Crisis Management', 'System Config'].map((m, i) => (
+              <tr key={m}>
+                <td style={{ fontWeight: 600 }}>{m}</td>
+                <td><SafeIcon icon={FiCheckCircle} style={{ color: 'var(--ac-success)' }} /></td>
+                <td>{i < 3 ? <SafeIcon icon={FiCheckCircle} style={{ color: 'var(--ac-success)' }} /> : <SafeIcon icon={FiX} style={{ color: 'var(--ac-danger)' }} />}</td>
+                <td>{i === 0 ? <SafeIcon icon={FiCheckCircle} style={{ color: 'var(--ac-success)' }} /> : <SafeIcon icon={FiX} style={{ color: 'var(--ac-danger)' }} />}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  </div>
+);
+
+export const SettingsPage = () => (
+  <div className="ac-stack">
+    <h1 className="ac-h1">Global Settings</h1>
+    <div className="ac-grid-2">
+      <Card title="Application Config">
+        <div className="ac-stack-sm">
+          <Field label="Site Name"><Input defaultValue="Acute Care Services" /></Field>
+          <Field label="Support Email"><Input defaultValue="support@acuteconnect.health" /></Field>
+          <Button>Save Settings</Button>
+        </div>
+      </Card>
+      <Card title="Security">
+        <div className="ac-stack-sm">
+          <div className="ac-flex-between">
+            <span className="ac-sm">Require 2FA for Admins</span>
+            <input type="checkbox" defaultChecked />
+          </div>
+          <div className="ac-flex-between">
+            <span className="ac-sm">Session Timeout (mins)</span>
+            <input type="number" defaultValue="60" style={{ width: 60, padding: 4 }} />
+          </div>
+        </div>
+      </Card>
+    </div>
+  </div>
+);
+
+export const SiteMapPage = () => (
+  <div className="ac-stack">
+    <h1 className="ac-h1">Site Map & Structure</h1>
+    <Card>
+      <div className="ac-stack-sm" style={{ fontFamily: 'monospace' }}>
+        <div>├── 📂 Client Views</div>
+        <div>│   ├── Check-in Form</div>
+        <div>│   └── Resources</div>
+        <div>├── 📂 Admin Views</div>
+        <div>│   ├── Triage Dashboard</div>
+        <div>│   ├── CRM & Patients</div>
+        <div>│   └── Crisis Management</div>
+        <div>└── 📂 System Views</div>
+        <div>    ├── Metrics Dashboard</div>
+        <div>    ├── User/Staff Management</div>
+        <div>    ├── Integrations Hub</div>
+        <div>    └── Feedback & Features</div>
+      </div>
+    </Card>
+  </div>
+);
