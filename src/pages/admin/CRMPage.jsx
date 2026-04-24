@@ -31,7 +31,7 @@ const ModalOverlay = ({ title, onClose, children }) => (
 
 export default function CRMPage() {
   const [clients, setClients] = useState([]);
-  const [centres, setCentres] = useState(['Main Campus', 'North Clinic', 'Camperdown Medical']);
+  const [centres, setCentres] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState('');
   const [modalMode, setModalMode] = useState(null);
@@ -54,8 +54,12 @@ export default function CRMPage() {
   };
 
   const fetchCentres = async () => {
-    const { data } = await supabase.from('care_centres_1777090000').select('name');
-    if (data && data.length > 0) setCentres(data.map(d => d.name));
+    const { data, error } = await supabase.from('care_centres_1777090000').select('*').order('name');
+    if (error) {
+      console.error('Error fetching care centres:', error);
+    } else if (data) {
+      setCentres(data);
+    }
   };
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
@@ -64,18 +68,19 @@ export default function CRMPage() {
     if (!form.name) return alert('Name is required.');
     const crn = generateCRN();
     
-    // Create CRN record first to ensure relational integrity if needed
     await supabase.from('crns_1740395000').insert([{ code: crn, is_active: true }]);
     
     const { error } = await supabase.from('clients_1777020684735').insert([{ 
       ...form, 
       crn,
-      status: 'active'
+      status: 'active',
+      care_centre: form.care_centre || null
     }]);
 
     if (!error) {
       showToast(`Patient registered successfully! CRN: ${crn}`);
       setModalMode(null);
+      setForm({ name: '', phone: '', email: '', support_category: 'general', care_centre: '' });
       fetchClients();
     } else {
       alert(error.message);
@@ -84,10 +89,20 @@ export default function CRMPage() {
 
   const handleEdit = async () => {
     const { error } = await supabase.from('clients_1777020684735').update({
-      name: form.name, email: form.email, phone: form.phone, support_category: form.support_category, care_centre: form.care_centre
+      name: form.name, 
+      email: form.email, 
+      phone: form.phone, 
+      support_category: form.support_category, 
+      care_centre: form.care_centre || null
     }).eq('id', selectedClient.id);
-    if (!error) { showToast('Client profile updated.'); setModalMode(null); fetchClients(); }
-    else alert(error.message);
+    
+    if (!error) { 
+      showToast('Client profile updated.'); 
+      setModalMode(null); 
+      fetchClients(); 
+    } else {
+      alert(error.message);
+    }
   };
 
   const handleOffboard = async () => {
@@ -110,12 +125,14 @@ export default function CRMPage() {
   });
 
   const categories = ['general', 'crisis', 'mental_health', 'substance_abuse', 'housing'];
-  
-  // Create robust explicit dropdown options to ensure empty strings are selected correctly
-  const categoryOptions = categories.map(c => ({value: c, label: c.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}));
+  const categoryOptions = categories.map(c => ({value: c, label: c.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}));
   const filterCategoryOptions = [{value: 'all', label: 'All Categories'}, ...categoryOptions];
-  const centreOptions = [{value: '', label: '-- Select Care Centre --'}, ...centres.map(c => ({value: c, label: c}))];
-  const filterCentreOptions = [{value: 'all', label: 'All Centres'}, ...centres.map(c => ({value: c, label: c}))];
+  
+  const centreOptions = centres.length > 0 
+    ? [{value: '', label: '-- Select Care Centre --'}, ...centres.map(c => ({value: c.name, label: c.name}))]
+    : [{value: '', label: '-- No Care Centres Available --'}];
+  
+  const filterCentreOptions = [{value: 'all', label: 'All Centres'}, ...centres.map(c => ({value: c.name, label: c.name}))];
 
   return (
     <div className="ac-stack">
@@ -171,8 +188,8 @@ export default function CRMPage() {
                           setSelectedClient(c); 
                           setForm({ 
                             name: c.name, 
-                            email: c.email, 
-                            phone: c.phone, 
+                            email: c.email || '', 
+                            phone: c.phone || '', 
                             support_category: c.support_category || 'general',
                             care_centre: c.care_centre || ''
                           }); 
@@ -204,7 +221,7 @@ export default function CRMPage() {
               <Select value={form.support_category} onChange={e => setForm({ ...form, support_category: e.target.value })} options={categoryOptions} />
             </Field>
             <Field label="Care Centre">
-              <Select value={form.care_centre || ''} onChange={e => setForm({ ...form, care_centre: e.target.value })} options={centreOptions} />
+              <Select value={form.care_centre} onChange={e => setForm({ ...form, care_centre: e.target.value })} options={centreOptions} />
             </Field>
             <div className="ac-grid-2" style={{ marginTop: 8 }}>
               <Button variant="outline" onClick={() => setModalMode(null)}>Cancel</Button>
@@ -224,7 +241,7 @@ export default function CRMPage() {
               <Select value={form.support_category} onChange={e => setForm({ ...form, support_category: e.target.value })} options={categoryOptions} />
             </Field>
             <Field label="Care Centre">
-              <Select value={form.care_centre || ''} onChange={e => setForm({ ...form, care_centre: e.target.value })} options={centreOptions} />
+              <Select value={form.care_centre} onChange={e => setForm({ ...form, care_centre: e.target.value })} options={centreOptions} />
             </Field>
             <div className="ac-grid-2" style={{ marginTop: 8 }}>
               <Button variant="outline" onClick={() => setModalMode(null)}>Cancel</Button>

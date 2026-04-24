@@ -9,7 +9,8 @@ const {
   FiActivity, FiDatabase, FiShield, FiMap, FiHome,
   FiPlus, FiSettings, FiUsers, FiEdit2, FiMessageSquare,
   FiThumbsUp, FiAlertTriangle, FiTrash2, FiLink, FiGlobe,
-  FiFileText, FiList, FiNavigation, FiKey, FiSave, FiMail, FiClock, FiTrendingUp
+  FiFileText, FiList, FiNavigation, FiKey, FiSave, FiMail, FiClock, FiTrendingUp,
+  FiEye, FiCheck, FiColumns
 } = FiIcons;
 
 const Toast = ({ msg, onClose }) => (
@@ -22,9 +23,9 @@ const Toast = ({ msg, onClose }) => (
   </div>
 );
 
-const ModalOverlay = ({ title, onClose, children }) => (
+const ModalOverlay = ({ title, onClose, children, wide }) => (
   <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 16 }}>
-    <div style={{ background: 'var(--ac-surface)', borderRadius: 16, padding: 24, width: '100%', maxWidth: 500, boxShadow: 'var(--ac-shadow-lg)', maxHeight: '90vh', overflowY: 'auto' }}>
+    <div style={{ background: 'var(--ac-surface)', borderRadius: 16, padding: 24, width: '100%', maxWidth: wide ? 800 : 600, boxShadow: 'var(--ac-shadow-lg)', maxHeight: '90vh', overflowY: 'auto' }}>
       <div className="ac-flex-between" style={{ marginBottom: 20 }}>
         <h2 className="ac-h2">{title}</h2>
         <button className="ac-icon-btn" onClick={onClose}><SafeIcon icon={FiX} size={16} /></button>
@@ -34,7 +35,7 @@ const ModalOverlay = ({ title, onClose, children }) => (
   </div>
 );
 
-/* ─── SYSTEM DASHBOARD WITH SUPPORT GAUGES & PROVIDER TRACKING ────── */
+/* ─── SYSTEM DASHBOARD ────────────────────────────────────────────── */
 export const SysDashPage = () => {
   return (
     <div className="ac-stack">
@@ -287,7 +288,7 @@ export const UsersPage = () => {
   );
 };
 
-/* ─── HEATMAP WITH AI INSIGHTS ──────────────────────────────────── */
+/* ─── HEATMAP ──────────────────────────────────────────────────── */
 export const HeatMapPage = () => {
   const [aiInsight, setAiInsight] = useState(false);
 
@@ -329,26 +330,40 @@ export const HeatMapPage = () => {
 
 /* ─── OFFICES ────────────────────────────────────────────────── */
 export const OfficesPage = () => {
-  const [offices, setOffices] = useState([
-    { id: 1, name: 'Main Campus', suffix: 'MCP', address: '123 Health Way', status: 'active', beds: 45, fallback_office_id: null },
-    { id: 2, name: 'North Clinic', suffix: 'NCL', address: '45 North Blvd', status: 'maintenance', beds: 12, fallback_office_id: 1 },
-  ]);
+  const [offices, setOffices] = useState([]);
   const [modal, setModal] = useState(false);
-  const [form, setForm] = useState({ id: null, name: '', suffix: '', address: '', status: 'active', beds: 0, fallback_office_id: null });
+  const [form, setForm] = useState({ id: null, name: '', suffix: '', address: '', status: 'active', beds: 0 });
   const [toast, setToast] = useState('');
+
+  useEffect(() => { fetchOffices(); }, []);
+
+  const fetchOffices = async () => {
+    const { data } = await supabase.from('care_centres_1777090000').select('*');
+    if (data && data.length > 0) {
+      setOffices(data);
+    }
+  };
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name || !form.suffix) return alert('Name and CRN Suffix are required');
+    
     if (form.id) {
-      setOffices(offices.map(o => o.id === form.id ? form : o));
-      showToast('Care Centre updated successfully');
+      const { error } = await supabase.from('care_centres_1777090000').update({
+        name: form.name, suffix: form.suffix, address: form.address, status: form.status, beds: form.beds
+      }).eq('id', form.id);
+      if(!error) showToast('Care Centre updated successfully');
+      else alert(error.message);
     } else {
-      setOffices([...offices, { ...form, id: Date.now() }]);
-      showToast('Care Centre created successfully');
+      const { error } = await supabase.from('care_centres_1777090000').insert([{
+        name: form.name, suffix: form.suffix, address: form.address, status: form.status, beds: form.beds
+      }]);
+      if(!error) showToast('Care Centre created successfully');
+      else alert(error.message);
     }
     setModal(false);
+    fetchOffices();
   };
 
   return (
@@ -357,7 +372,7 @@ export const OfficesPage = () => {
       <div className="ac-flex-between">
         <h1 className="ac-h1">Care Centre Management</h1>
         <Button icon={FiPlus} onClick={() => { 
-          setForm({ id: null, name: '', suffix: '', address: '', status: 'active', beds: 0, fallback_office_id: null }); 
+          setForm({ id: null, name: '', suffix: '', address: '', status: 'active', beds: 0 }); 
           setModal(true); 
         }}>Add Care Centre</Button>
       </div>
@@ -368,22 +383,22 @@ export const OfficesPage = () => {
               <tr><th>Name</th><th>CRN Suffix</th><th>Address</th><th>Capacity</th><th>Status</th><th>Actions</th></tr>
             </thead>
             <tbody>
-              {offices.map(o => {
-                return (
-                  <tr key={o.id}>
-                    <td style={{ fontWeight: 600 }}>{o.name}</td>
-                    <td><Badge tone="violet">{o.suffix}</Badge></td>
-                    <td className="ac-muted ac-xs">{o.address}</td>
-                    <td>{o.beds} Beds</td>
-                    <td><StatusBadge status={o.status} /></td>
-                    <td>
-                      <button className="ac-icon-btn" onClick={() => { setForm(o); setModal(true); }}>
-                        <SafeIcon icon={FiEdit2} size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+              {offices.length === 0 ? (
+                <tr><td colSpan="6" className="ac-center" style={{ padding: 24, color: 'var(--ac-muted)' }}>No care centres found.</td></tr>
+              ) : offices.map(o => (
+                <tr key={o.id}>
+                  <td style={{ fontWeight: 600 }}>{o.name}</td>
+                  <td><Badge tone="violet">{o.suffix}</Badge></td>
+                  <td className="ac-muted ac-xs">{o.address}</td>
+                  <td>{o.beds} Beds</td>
+                  <td><StatusBadge status={o.status} /></td>
+                  <td>
+                    <button className="ac-icon-btn" onClick={() => { setForm(o); setModal(true); }}>
+                      <SafeIcon icon={FiEdit2} size={14} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -424,7 +439,7 @@ export const OfficesPage = () => {
   );
 };
 
-/* ─── INTEGRATIONS WITH LOCAL STORAGE ────────────────────────────────────────────── */
+/* ─── INTEGRATIONS ────────────────────────────────────────────────── */
 export const IntegrationPage = () => {
   const [toast, setToast] = useState('');
   const [modal, setModal] = useState(null);
@@ -553,6 +568,9 @@ export const IntegrationPage = () => {
 export const FeedbackPage = () => {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState('');
+  const [viewModal, setViewModal] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => { fetchTickets(); }, []);
 
@@ -563,33 +581,103 @@ export const FeedbackPage = () => {
     setLoading(false);
   };
 
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
+
+  const handleResolve = async (id) => {
+    const { error } = await supabase.from('feedback_tickets_1777090000').update({ status: 'resolved' }).eq('id', id);
+    if (!error) {
+      showToast('Ticket marked as resolved.');
+      fetchTickets();
+      setViewModal(null);
+    } else {
+      alert(error.message);
+    }
+  };
+
+  const filteredTickets = statusFilter === 'all' ? tickets : tickets.filter(t => t.status === statusFilter);
+
   return (
     <div className="ac-stack">
+      {toast && <Toast msg={toast} onClose={() => setToast('')} />}
+      
       <div className="ac-flex-between">
         <h1 className="ac-h1">Feedback & Tickets</h1>
-        <Button variant="outline" icon={FiRefreshCw} onClick={fetchTickets}>Refresh</Button>
+        <div className="ac-flex-gap">
+          <Select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} options={[
+            { value: 'all', label: 'All Tickets' },
+            { value: 'open', label: 'Open' },
+            { value: 'resolved', label: 'Resolved' }
+          ]} />
+          <Button variant="outline" icon={FiRefreshCw} onClick={fetchTickets}>Refresh</Button>
+        </div>
       </div>
+      
       <Card>
         <div className="ac-table-container">
           <table className="ac-table">
             <thead>
-              <tr><th>Subject</th><th>Submitter</th><th>Category</th><th>Status</th></tr>
+              <tr><th>Subject</th><th>Submitter</th><th>Category</th><th>Priority</th><th>Status</th><th>Actions</th></tr>
             </thead>
             <tbody>
-              {loading ? <tr><td colSpan="4" className="ac-center" style={{ padding: 24 }}>Loading...</td></tr> : 
-               tickets.length === 0 ? <tr><td colSpan="4" className="ac-center" style={{ padding: 24, color: 'var(--ac-muted)' }}>No tickets found.</td></tr> :
-               tickets.map(t => (
+              {loading ? <tr><td colSpan="6" className="ac-center" style={{ padding: 24 }}>Loading...</td></tr> : 
+               filteredTickets.length === 0 ? <tr><td colSpan="6" className="ac-center" style={{ padding: 24, color: 'var(--ac-muted)' }}>No tickets found.</td></tr> :
+               filteredTickets.map(t => (
                 <tr key={t.id}>
                   <td style={{ fontWeight: 600 }}>{t.subject}</td>
                   <td><div className="ac-sm">{t.submitted_by}</div></td>
-                  <td>{t.category}</td>
+                  <td><Badge tone="blue">{t.category}</Badge></td>
+                  <td>
+                    <Badge tone={t.priority === 'high' ? 'red' : t.priority === 'medium' ? 'amber' : 'green'}>
+                      {t.priority}
+                    </Badge>
+                  </td>
                   <td><StatusBadge status={t.status} /></td>
+                  <td>
+                    <button className="ac-icon-btn" onClick={() => setViewModal(t)}>
+                      <SafeIcon icon={FiEye} size={14} />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </Card>
+
+      {viewModal && (
+        <ModalOverlay title="Ticket Details" onClose={() => setViewModal(null)}>
+          <div className="ac-stack">
+            <div style={{ background: 'var(--ac-bg)', padding: 12, borderRadius: 8 }}>
+              <div className="ac-flex-between" style={{ marginBottom: 8 }}>
+                <span className="ac-sm" style={{ fontWeight: 600 }}>{viewModal.subject}</span>
+                <StatusBadge status={viewModal.status} />
+              </div>
+              <div className="ac-xs ac-muted">Submitted by {viewModal.submitted_by} on {new Date(viewModal.created_at).toLocaleDateString()}</div>
+            </div>
+
+            <Field label="Message">
+              <div style={{ background: 'var(--ac-bg)', padding: 12, borderRadius: 8, border: '1px solid var(--ac-border)' }}>
+                <p className="ac-sm">{viewModal.message}</p>
+              </div>
+            </Field>
+
+            <div className="ac-grid-2">
+              <Field label="Category"><Input value={viewModal.category} disabled /></Field>
+              <Field label="Priority">
+                <Badge tone={viewModal.priority === 'high' ? 'red' : viewModal.priority === 'medium' ? 'amber' : 'green'}>
+                  {viewModal.priority}
+                </Badge>
+              </Field>
+            </div>
+
+            {viewModal.status !== 'resolved' && (
+              <Button icon={FiCheck} onClick={() => handleResolve(viewModal.id)}>Mark as Resolved</Button>
+            )}
+            
+            <Button variant="outline" onClick={() => setViewModal(null)}>Close</Button>
+          </div>
+        </ModalOverlay>
+      )}
     </div>
   );
 };
@@ -598,6 +686,7 @@ export const FeedbackPage = () => {
 export const FeatureRequestPage = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState('');
 
   useEffect(() => { fetchRequests(); }, []);
 
@@ -608,11 +697,27 @@ export const FeatureRequestPage = () => {
     setLoading(false);
   };
 
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3500); };
+
+  const handleStatusChange = async (id, newStatus) => {
+    const { error } = await supabase.from('feature_requests_1777090000').update({ status: newStatus }).eq('id', id);
+    if (!error) {
+      showToast(`Feature request marked as ${newStatus}.`);
+      fetchRequests();
+    } else {
+      alert(error.message);
+    }
+  };
+
   return (
     <div className="ac-stack">
+      {toast && <Toast msg={toast} onClose={() => setToast('')} />}
+      
       <div className="ac-flex-between">
-        <h1 className="ac-h1">Feature Requests</h1>
+        <h1 className="ac-h1">Feature Requests & Upgrades</h1>
+        <Button variant="outline" icon={FiRefreshCw} onClick={fetchRequests}>Refresh</Button>
       </div>
+      
       <div className="ac-grid-2">
         {loading ? <p className="ac-muted">Loading...</p> : 
          requests.length === 0 ? <p className="ac-muted">No requests found.</p> :
@@ -620,10 +725,29 @@ export const FeatureRequestPage = () => {
           <Card key={req.id}>
             <div className="ac-flex-between" style={{ alignItems: 'flex-start', marginBottom: 12 }}>
               <h3 style={{ fontWeight: 700, fontSize: 16 }}>{req.title}</h3>
-              <Badge tone="amber">{req.status}</Badge>
+              <Badge tone={req.status === 'planned' ? 'green' : req.status === 'in_progress' ? 'blue' : 'amber'}>
+                {req.status}
+              </Badge>
             </div>
-            <p className="ac-sm" style={{ marginBottom: 16 }}>{req.description}</p>
-            <div className="ac-flex-gap"><Button variant="outline" size="sm" icon={FiThumbsUp}>{req.votes}</Button></div>
+            <p className="ac-sm" style={{ marginBottom: 16, color: 'var(--ac-muted)' }}>{req.description}</p>
+            <div className="ac-flex-between">
+              <div className="ac-flex-gap">
+                <SafeIcon icon={FiThumbsUp} size={14} style={{ color: 'var(--ac-primary)' }} />
+                <span className="ac-sm" style={{ fontWeight: 600 }}>{req.votes} votes</span>
+              </div>
+              <div className="ac-flex-gap">
+                {req.status !== 'planned' && (
+                  <Button size="sm" variant="outline" onClick={() => handleStatusChange(req.id, 'planned')}>
+                    Mark Planned
+                  </Button>
+                )}
+                {req.status !== 'in_progress' && (
+                  <Button size="sm" onClick={() => handleStatusChange(req.id, 'in_progress')}>
+                    Start Work
+                  </Button>
+                )}
+              </div>
+            </div>
           </Card>
         ))}
       </div>
@@ -631,37 +755,137 @@ export const FeatureRequestPage = () => {
   );
 };
 
-/* ─── LOGS, REGRESSION, MODULE ACCESS, SETTINGS, SITEMAP ─────────── */
-export const LogsPage = () => (
-  <div className="ac-stack">
-    <h1 className="ac-h1">System Logs</h1>
-    <Card>
-      <div className="ac-mono ac-xs" style={{ whiteSpace: 'pre-wrap', color: 'var(--ac-fg)', background: 'var(--ac-bg)', padding: 16, borderRadius: 8 }}>
-        [10:45:12] INFO: Supabase connection established.{"\n"}
-        [10:46:01] WARN: Failed to sync Google Calendar (Token expired).{"\n"}
-        [10:48:33] INFO: Admin user logged in.
-      </div>
-    </Card>
-  </div>
-);
+/* ─── SETTINGS WITH SUB-PAGES ───────────────────────────────────── */
+export const SettingsPage = () => {
+  const [config, setConfig] = useState(() => JSON.parse(localStorage.getItem('ac_app_config')) || { 
+    site_name: 'Acute Care Services', 
+    support_email: 'support@acuteconnect.health',
+    contact_phone: '+61 2 9999 0000'
+  });
+  const [toast, setToast] = useState('');
+  const [subPage, setSubPage] = useState(null);
 
-export const RegressionPage = () => (
-  <div className="ac-stack">
-    <h1 className="ac-h1">Regression Tests</h1>
-    <Card title="Automated QA Suite">
-      <div className="ac-stack-sm">
-        {['Auth Flow', 'Database RLS', 'UI Rendering', 'CRM Sync'].map(test => (
-          <div key={test} className="ac-flex-between" style={{ padding: 12, border: '1px solid var(--ac-border)', borderRadius: 8 }}>
-            <span style={{ fontWeight: 600 }}>{test}</span>
-            <Badge tone="green">Passed</Badge>
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
+
+  const handleSave = () => {
+    localStorage.setItem('ac_app_config', JSON.stringify(config));
+    showToast('Settings saved successfully.');
+  };
+
+  return (
+    <div className="ac-stack">
+      {toast && <Toast msg={toast} onClose={() => setToast('')} />}
+      <h1 className="ac-h1">Global Settings</h1>
+      
+      <div className="ac-grid-3">
+        <Card title="Application Config">
+          <div className="ac-stack-sm">
+            <Field label="Site Name">
+              <Input value={config.site_name} onChange={e => setConfig({...config, site_name: e.target.value})} />
+            </Field>
+            <Field label="Support Email">
+              <Input value={config.support_email} onChange={e => setConfig({...config, support_email: e.target.value})} />
+            </Field>
+            <Field label="Contact Phone">
+              <Input value={config.contact_phone} onChange={e => setConfig({...config, contact_phone: e.target.value})} />
+            </Field>
+            <Button icon={FiSave} onClick={handleSave}>Save Settings</Button>
           </div>
-        ))}
-        <Button variant="outline" style={{ marginTop: 12 }}>Run All Tests</Button>
-      </div>
-    </Card>
-  </div>
-);
+        </Card>
 
+        <Card title="System Tools">
+          <div className="ac-stack-sm">
+            <Button variant="outline" icon={FiFileText} onClick={() => setSubPage('logs')} style={{ width: '100%', justifyContent: 'flex-start' }}>
+              System Logs
+            </Button>
+            <Button variant="outline" icon={FiCpu} onClick={() => setSubPage('regression')} style={{ width: '100%', justifyContent: 'flex-start' }}>
+              Regression Tests
+            </Button>
+            <Button variant="outline" icon={FiColumns} onClick={() => setSubPage('sitemap')} style={{ width: '100%', justifyContent: 'flex-start' }}>
+              Site Map
+            </Button>
+          </div>
+        </Card>
+      </div>
+
+      {subPage === 'logs' && (
+        <ModalOverlay title="System Logs" onClose={() => setSubPage(null)} wide>
+          <Card>
+            <div className="ac-mono ac-xs" style={{ whiteSpace: 'pre-wrap', color: 'var(--ac-fg)', background: 'var(--ac-bg)', padding: 16, borderRadius: 8, maxHeight: 400, overflowY: 'auto' }}>
+              [10:45:12] INFO: Supabase connection established.{"\n"}
+              [10:46:01] WARN: Failed to sync Google Calendar (Token expired).{"\n"}
+              [10:48:33] INFO: Admin user logged in.{"\n"}
+              [10:50:15] INFO: CRM: New patient registered (CRN: AC2024-001-MCP).{"\n"}
+              [10:52:44] INFO: AI Engine: Triage analysis completed for check-in #142.{"\n"}
+              [11:05:22] INFO: Heat Map: Predictive model updated with latest data.{"\n"}
+              [11:10:08] WARN: API rate limit approaching (78% of quota used).
+            </div>
+          </Card>
+        </ModalOverlay>
+      )}
+
+      {subPage === 'regression' && (
+        <ModalOverlay title="Regression Tests" onClose={() => setSubPage(null)} wide>
+          <Card title="Automated QA Suite">
+            <div className="ac-stack-sm">
+              {[
+                { name: 'Auth Flow', status: 'Passed', tone: 'green' },
+                { name: 'Database RLS', status: 'Passed', tone: 'green' },
+                { name: 'UI Rendering', status: 'Passed', tone: 'green' },
+                { name: 'CRM Sync', status: 'Passed', tone: 'green' },
+                { name: 'AI Integration', status: 'Passed', tone: 'green' },
+                { name: 'Calendar Sync', status: 'Warning', tone: 'amber' }
+              ].map(test => (
+                <div key={test.name} className="ac-flex-between" style={{ padding: 12, border: '1px solid var(--ac-border)', borderRadius: 8 }}>
+                  <span style={{ fontWeight: 600 }}>{test.name}</span>
+                  <Badge tone={test.tone}>{test.status}</Badge>
+                </div>
+              ))}
+              <Button variant="outline" icon={FiRefreshCw} style={{ marginTop: 12 }}>Run All Tests</Button>
+            </div>
+          </Card>
+        </ModalOverlay>
+      )}
+
+      {subPage === 'sitemap' && (
+        <ModalOverlay title="Site Map & Structure" onClose={() => setSubPage(null)} wide>
+          <Card>
+            <div className="ac-stack-sm" style={{ fontFamily: 'monospace', fontSize: 13 }}>
+              <div>📂 <strong>Client Views</strong></div>
+              <div style={{ paddingLeft: 20 }}>├── Check-In</div>
+              <div style={{ paddingLeft: 20 }}>├── Professionals Directory</div>
+              <div style={{ paddingLeft: 20 }}>└── Resources Library</div>
+              
+              <div style={{ marginTop: 12 }}>📂 <strong>Admin Views</strong></div>
+              <div style={{ paddingLeft: 20 }}>├── Triage Dashboard</div>
+              <div style={{ paddingLeft: 20 }}>├── Client CRM</div>
+              <div style={{ paddingLeft: 20 }}>├── Bulk Offboarding</div>
+              <div style={{ paddingLeft: 20 }}>├── Crisis Management</div>
+              <div style={{ paddingLeft: 20 }}>├── Heat Map & Dispatch</div>
+              <div style={{ paddingLeft: 20 }}>├── Clinical Reports</div>
+              <div style={{ paddingLeft: 20 }}>└── Invoicing & Billing</div>
+              
+              <div style={{ marginTop: 12 }}>📂 <strong>System Admin Views</strong></div>
+              <div style={{ paddingLeft: 20 }}>├── System Dashboard</div>
+              <div style={{ paddingLeft: 20 }}>├── Feedback & Tickets</div>
+              <div style={{ paddingLeft: 20 }}>├── Feature Requests</div>
+              <div style={{ paddingLeft: 20 }}>├── Crisis Analytics</div>
+              <div style={{ paddingLeft: 20 }}>├── Provider Metrics</div>
+              <div style={{ paddingLeft: 20 }}>├── Care Centres</div>
+              <div style={{ paddingLeft: 20 }}>├── Integrations</div>
+              <div style={{ paddingLeft: 20 }}>├── Staff Management</div>
+              <div style={{ paddingLeft: 20 }}>├── Module Access</div>
+              <div style={{ paddingLeft: 20 }}>├── Settings</div>
+              <div style={{ paddingLeft: 20 }}>└── Super Admin</div>
+            </div>
+          </Card>
+        </ModalOverlay>
+      )}
+    </div>
+  );
+};
+
+/* ─── MODULE ACCESS ──────────────────────────────────────────────── */
 export const ModuleAccessPage = () => (
   <div className="ac-stack">
     <h1 className="ac-h1">Module Access Control</h1>
@@ -682,34 +906,6 @@ export const ModuleAccessPage = () => (
             ))}
           </tbody>
         </table>
-      </div>
-    </Card>
-  </div>
-);
-
-export const SettingsPage = () => (
-  <div className="ac-stack">
-    <h1 className="ac-h1">Global Settings</h1>
-    <div className="ac-grid-2">
-      <Card title="Application Config">
-        <div className="ac-stack-sm">
-          <Field label="Site Name"><Input defaultValue="Acute Care Services" /></Field>
-          <Field label="Support Email"><Input defaultValue="support@acuteconnect.health" /></Field>
-          <Button>Save Settings</Button>
-        </div>
-      </Card>
-    </div>
-  </div>
-);
-
-export const SiteMapPage = () => (
-  <div className="ac-stack">
-    <h1 className="ac-h1">Site Map & Structure</h1>
-    <Card>
-      <div className="ac-stack-sm" style={{ fontFamily: 'monospace' }}>
-        <div>├── 📂 Client Views</div>
-        <div>├── 📂 Admin Views</div>
-        <div>└── 📂 System Views</div>
       </div>
     </Card>
   </div>

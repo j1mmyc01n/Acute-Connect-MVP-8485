@@ -4,11 +4,12 @@ import SafeIcon from './common/SafeIcon';
 import { useDarkMode, cx, badgeToneFor } from './lib/utils';
 import { MENU } from './lib/menu';
 import { Badge, DiamondLogo, Field, Input, Button } from './components/UI';
+import JaxAI from './components/JaxAI';
 
 // Client Views
 import { CheckInPage, ResourcesPage, ProfessionalsPage, ProviderJoinPage } from './pages/ClientViews';
 
-// Admin Views - Now fully modular
+// Admin Views
 import TriageDashboard from './pages/admin/TriageDashboard';
 import CRMPage from './pages/admin/CRMPage';
 import InvoicingPage from './pages/admin/InvoicingPage';
@@ -18,14 +19,13 @@ import { BulkOffboardingPage, CrisisAnalyticsPage, FeedbackDashPage } from './pa
 
 // System Views
 import {
-  LogsPage, SysDashPage, IntegrationPage,
-  RegressionPage, SettingsPage,
-  UsersPage, ModuleAccessPage, SiteMapPage,
+  SysDashPage, IntegrationPage,
+  SettingsPage, UsersPage, ModuleAccessPage,
   SuperAdminPage, OfficesPage, HeatMapPage,
   FeedbackPage, FeatureRequestPage, ProviderMetricsPage
 } from './pages/SystemViews';
 
-const { FiMenu, FiMoon, FiSun, FiLock, FiLogOut } = FiIcons;
+const { FiMenu, FiMoon, FiSun, FiLock, FiLogOut, FiEyeOff, FiEye } = FiIcons;
 
 const PUBLIC_PAGES = new Set(['checkin', 'resources', 'professionals', 'join_provider']);
 
@@ -46,20 +46,17 @@ const PageRenderer = ({ id, goto, onLoginIntent }) => {
     case 'crisis_analytics': return <CrisisAnalyticsPage />;
     case 'reports':          return <ReportsPage />;
     case 'feedback_dash':    return <FeedbackDashPage />;
+    case 'heatmap':          return <HeatMapPage />;
 
     // System Views
     case 'sysdash':          return <SysDashPage />;
+    case 'feedback':         return <FeedbackPage />;
+    case 'features':         return <FeatureRequestPage />;
     case 'provider_metrics': return <ProviderMetricsPage />;
     case 'offices':          return <OfficesPage />;
     case 'integrations':     return <IntegrationPage />;
-    case 'logs':             return <LogsPage />;
-    case 'heatmap':          return <HeatMapPage />;
     case 'users':            return <UsersPage />;
-    case 'feedback':         return <FeedbackPage />;
-    case 'features':         return <FeatureRequestPage />;
     case 'modaccess':        return <ModuleAccessPage />;
-    case 'sitemap':          return <SiteMapPage />;
-    case 'regression':       return <RegressionPage />;
     case 'settings':         return <SettingsPage />;
     case 'superadmin':       return <SuperAdminPage />;
     
@@ -67,7 +64,7 @@ const PageRenderer = ({ id, goto, onLoginIntent }) => {
   }
 };
 
-const SmartMenu = ({ open, onClose, current, goto, role, onLogout }) => (
+const SmartMenu = ({ open, onClose, current, goto, role, onLogout, showBadges }) => (
   <>
     <div className={cx('ac-scrim', open && 'ac-scrim-on')} onClick={onClose} />
     <aside className={cx('ac-drawer', open && 'ac-drawer-on')}>
@@ -93,7 +90,7 @@ const SmartMenu = ({ open, onClose, current, goto, role, onLogout }) => (
               >
                 <SafeIcon icon={it.icon} size={16} />
                 <span style={{ flex: 1 }}>{it.label}</span>
-                {it.badge && <Badge tone={badgeToneFor(it.badge)}>{it.badge}</Badge>}
+                {showBadges && it.badge && <Badge tone={badgeToneFor(it.badge)}>{it.badge}</Badge>}
               </button>
             ))}
           </div>
@@ -163,6 +160,7 @@ export default function App() {
   const [page, setPage] = useState('checkin');
   const [role, setRole] = useState(null);
   const [loginModal, setLoginModal] = useState(null);
+  const [showBadges, setShowBadges] = useState(true);
 
   const isPublic = PUBLIC_PAGES.has(page);
 
@@ -197,6 +195,13 @@ export default function App() {
           <span style={{ fontSize: 11, color: 'var(--ac-success)', fontWeight: 600 }}>● Live</span>
         </div>
         <div className="ac-flex-gap">
+          <button 
+            className="ac-icon-btn" 
+            onClick={() => setShowBadges(!showBadges)}
+            title={showBadges ? "Hide menu badges" : "Show menu badges"}
+          >
+            <SafeIcon icon={showBadges ? FiEyeOff : FiEye} size={16} />
+          </button>
           <button className="ac-icon-btn" onClick={() => setDark(!dark)}>
             <SafeIcon icon={dark ? FiSun : FiMoon} size={16} />
           </button>
@@ -224,6 +229,7 @@ export default function App() {
         goto={handlePageChange}
         role={role}
         onLogout={handleLogout}
+        showBadges={showBadges}
       />
 
       <main className="ac-main">
@@ -238,6 +244,9 @@ export default function App() {
           <PageRenderer id={page} goto={handlePageChange} onLoginIntent={setLoginModal} />
         )}
       </main>
+
+      {/* Passing the current role down so Jax AI only loads for staff */}
+      <JaxAI role={role} />
 
       <footer style={{ textAlign: 'center', padding: '20px 16px', color: 'var(--ac-muted)', fontSize: 11, borderTop: '1px solid var(--ac-border)' }}>
         © Laurendi · Acute Connect v2.5.0 · Protected by AES-256
