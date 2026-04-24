@@ -13,7 +13,7 @@ const {
   FiMapPin, FiFilter, FiCreditCard, FiLoader, FiSend,
   FiCheckCircle, FiBell, FiUpload, FiImage, FiStar,
   FiShield, FiTrendingUp, FiUsers, FiZap, FiCheck,
-  FiArrowRight, FiHeart, FiAward, FiGlobe
+  FiArrowRight, FiHeart, FiAward, FiGlobe, FiX, FiInfo
 } = FiIcons;
 
 const RESOURCES = [
@@ -29,12 +29,117 @@ const getBannerTextColor = (hex) => {
     const r = parseInt(c.substring(0, 2), 16);
     const g = parseInt(c.substring(2, 4), 16);
     const b = parseInt(c.substring(4, 6), 16);
-    // WCAG relative luminance
     const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
     return luminance > 0.55 ? '#1a1a1a' : '#ffffff';
   } catch {
     return '#ffffff';
   }
+};
+
+/* ─── COOKIE CONSENT BANNER (Consently-style) ──────────────────── */
+const CookieConsentBanner = () => {
+  const [accepted, setAccepted] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('ac_cookie_consent');
+    if (stored === 'accepted') setAccepted(true);
+  }, []);
+
+  const handleAccept = () => {
+    localStorage.setItem('ac_cookie_consent', 'accepted');
+    localStorage.setItem('ac_cookie_timestamp', new Date().toISOString());
+    setAccepted(true);
+  };
+
+  const handleReject = () => {
+    localStorage.setItem('ac_cookie_consent', 'rejected');
+    localStorage.setItem('ac_cookie_timestamp', new Date().toISOString());
+    setAccepted(true);
+  };
+
+  if (accepted) return null;
+
+  return (
+    <div style={{
+      position: 'fixed', bottom: 80, left: 0, right: 0,
+      background: 'var(--ac-surface)', borderTop: '1px solid var(--ac-border)',
+      padding: '16px 20px', zIndex: 150, boxShadow: '0 -4px 12px rgba(0,0,0,0.08)',
+      maxWidth: '100%'
+    }}>
+      <div style={{ maxWidth: 680, margin: '0 auto' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
+          <SafeIcon icon={FiInfo} size={18} style={{ color: 'var(--ac-primary)', flexShrink: 0, marginTop: 2 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>We use cookies to improve your experience</div>
+            <p style={{ fontSize: 12, color: 'var(--ac-muted)', lineHeight: 1.5, marginBottom: 10 }}>
+              We use essential cookies to keep you secure and improve the platform. You can manage your preferences below.
+            </p>
+            <button
+              onClick={() => setShowDetails(!showDetails)}
+              style={{ fontSize: 12, color: 'var(--ac-primary)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              {showDetails ? 'Hide details' : 'Learn more about our cookies'}
+            </button>
+          </div>
+          <button
+            onClick={handleReject}
+            style={{ background: 'none', border: 'none', color: 'var(--ac-muted)', cursor: 'pointer', padding: 4, fontSize: 16, flexShrink: 0 }}
+          >
+            ✕
+          </button>
+        </div>
+
+        {showDetails && (
+          <div style={{
+            background: 'var(--ac-bg)', borderRadius: 10, padding: 12, marginBottom: 12,
+            border: '1px solid var(--ac-border)', fontSize: 12, color: 'var(--ac-muted)', lineHeight: 1.6
+          }}>
+            <div style={{ fontWeight: 700, marginBottom: 8, color: 'var(--ac-text)' }}>Cookie Categories:</div>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontWeight: 600, marginBottom: 2 }}>🔒 Essential (Always enabled)</div>
+              <div>Security, session management, CSRF protection</div>
+            </div>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontWeight: 600, marginBottom: 2 }}>📊 Analytics (Optional)</div>
+              <div>Usage patterns to improve the platform</div>
+            </div>
+            <div>
+              <div style={{ fontWeight: 600, marginBottom: 2 }}>🎯 Marketing (Optional)</div>
+              <div>Sponsor content and platform improvements</div>
+            </div>
+            <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--ac-border)' }}>
+              <a href="#privacy" style={{ color: 'var(--ac-primary)', textDecoration: 'none', fontWeight: 600, marginRight: 16 }}>Privacy Policy</a>
+              <a href="#cookies" style={{ color: 'var(--ac-primary)', textDecoration: 'none', fontWeight: 600 }}>Cookie Policy</a>
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button
+            onClick={handleReject}
+            style={{
+              padding: '8px 16px', borderRadius: 8, background: 'var(--ac-bg)',
+              border: '1px solid var(--ac-border)', cursor: 'pointer', fontSize: 12,
+              fontWeight: 600, color: 'var(--ac-text)', transition: 'all 0.2s'
+            }}
+          >
+            Reject
+          </button>
+          <button
+            onClick={handleAccept}
+            style={{
+              padding: '8px 16px', borderRadius: 8, background: 'var(--ac-primary)',
+              border: 'none', cursor: 'pointer', fontSize: 12,
+              fontWeight: 600, color: '#fff', transition: 'all 0.2s'
+            }}
+          >
+            Accept All
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 /* ─── CRN REQUEST TAB ──────────────────────────────────────────── */
@@ -586,7 +691,7 @@ export const ProviderJoinPage = () => {
   );
 };
 
-/* ─── CHECK-IN PAGE ─────────────────────────────────────────────── */
+/* ─── CHECK-IN PAGE WITH SPONSOR BANNER + COOKIE CONSENT ───────── */
 export const CheckInPage = ({ goto, onLoginIntent }) => {
   const [tab, setTab] = useState("checkin");
   const [step, setStep] = useState(1);
@@ -649,9 +754,9 @@ export const CheckInPage = ({ goto, onLoginIntent }) => {
   );
 
   return (
-    <div className="ac-stack" style={{ position: 'relative', overflow: 'hidden' }}>
+    <div className="ac-stack" style={{ position: 'relative', overflow: 'hidden', paddingBottom: 120 }}>
 
-      {/* ANIMATED SPONSOR RIBBON BANNER */}
+      {/* ANIMATED SPONSOR RIBBON BANNER (Top Right) */}
       {sponsor && (
         <>
           <style>{`
@@ -765,7 +870,7 @@ export const CheckInPage = ({ goto, onLoginIntent }) => {
             </div>
           </div>
 
-          {/* SPONSOR FOOTER CARD */}
+          {/* SPONSOR FOOTER CARD (Below check-in) */}
           {sponsor && (
             <div style={{
               background: `linear-gradient(135deg, ${sponsor.color}18, ${sponsor.color}06)`,
@@ -773,7 +878,7 @@ export const CheckInPage = ({ goto, onLoginIntent }) => {
               borderLeft: `4px solid ${sponsor.color}`,
               borderRadius: 14, padding: '14px 16px',
               display: 'flex', alignItems: 'center', gap: 14,
-              marginBottom: 80, backdropFilter: 'blur(8px)'
+              marginTop: 20
             }}>
               {logoSrc && (
                 <img src={logoSrc} alt={sponsor.company_name} style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 8, background: '#fff', padding: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', flexShrink: 0 }} />
@@ -791,6 +896,8 @@ export const CheckInPage = ({ goto, onLoginIntent }) => {
       {tab === "crn_request" && <CRNRequestPage />}
       {tab === "location" && <LocationInfoView />}
       {tab === "resources" && <ResourcesView />}
+
+      <CookieConsentBanner />
 
       <footer style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "var(--ac-surface)", borderTop: "1px solid var(--ac-border)", padding: "10px 16px 20px", textAlign: "center", fontSize: 13, color: "var(--ac-muted)", zIndex: 50 }}>
         Need help? <a href="tel:131114" style={{ color: "#007AFF", textDecoration: "none", fontWeight: 600 }}>Lifeline 13 11 14</a> · <a href="tel:000" style={{ color: "#007AFF", textDecoration: "none", fontWeight: 600 }}>Emergency 000</a>
