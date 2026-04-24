@@ -22,6 +22,9 @@
   --ac-font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
   --ac-font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
 
+  /* Map Filter for Light Mode */
+  --ac-map-filter: none;
+
   /* Badge Colors */
   --ac-badge-blue-bg: #EAF2FB; --ac-badge-blue-text: #1A5276;
   --ac-badge-green-bg: #E8FAF0; --ac-badge-green-text: #1D8348;
@@ -43,6 +46,9 @@
   --ac-primary-2: #3B82F6;
   --ac-primary-soft: #1C1C1E;
   
+  /* Map Filter for Dark Mode */
+  --ac-map-filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(85%);
+
   --ac-badge-blue-bg: #1A5276; --ac-badge-blue-text: #EAF2FB;
   --ac-badge-green-bg: #1D8348; --ac-badge-green-text: #E8FAF0;
   --ac-badge-amber-bg: #B7770D; --ac-badge-amber-text: #FEF9E7;
@@ -122,3 +128,37 @@
 .ac-table th { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--ac-border); color: var(--ac-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-size: 11px; }
 .ac-table td { padding: 12px 16px; border-bottom: 1px solid var(--ac-border); }
 .ac-table tr:last-child td { border-bottom: 0; }
+
+/* ─── MAP STYLES ────────────────────────────────────────────────── */
+.ac-map-container { 
+  height: 350px; 
+  background: var(--ac-bg); 
+  border-radius: var(--ac-radius); 
+  position: relative; 
+  border: 1px solid var(--ac-border); 
+  overflow: hidden; 
+  margin-bottom: 16px;
+}
+.ac-map-canvas { 
+  position: absolute; 
+  inset: 0; 
+  background-image: 
+    linear-gradient(var(--ac-border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--ac-border) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-color: var(--ac-bg);
+}
+.ac-map-marker {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 12px rgba(0,0,0,0.15);
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  animation: markerDrop 0.5s ease-out backwards;
+}
+.ac-map-marker:hover { transform: translate(-50%, -50%) scale(1.2); z-index: 10; }
+@keyframes markerDrop { from { opacity: 0; transform: translate(-50%, -150%) scale(0.5); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }

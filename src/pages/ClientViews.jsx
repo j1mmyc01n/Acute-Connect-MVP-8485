@@ -29,55 +29,83 @@ export const ProfessionalsPage = () => {
   const [filter, setFilter] = useState({ qual: "All", sex: "All" });
   const [selectedProf, setSelectedProf] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   const filtered = PROFESSIONALS.filter(p => 
     (filter.qual === "All" || p.qual === filter.qual) &&
     (filter.sex === "All" || p.sex === filter.sex)
   );
 
+  const handleShareLocation = () => {
+    setSharing(true);
+    setTimeout(() => {
+      setSharing(false);
+      alert("Location shared with network providers.");
+    }, 1500);
+  };
+
   return (
     <div className="ac-stack">
       <div style={{ fontSize: 20, fontWeight: 700 }}>Health Professionals</div>
       
-      {/* Map is now at the top */}
       <Card title="Hybrid Map View" subtitle="Available professionals in your area">
-        <div style={{ 
-          height: 350, background: 'var(--ac-bg)', borderRadius: 12, position: 'relative', 
-          border: '1px solid var(--ac-border)', overflow: 'hidden' 
-        }}>
-          {/* Mock Map Background */}
-          <div style={{ position: 'absolute', inset: 0, opacity: 0.1, backgroundImage: 'radial-gradient(var(--ac-primary) 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+        <div className="ac-map-container">
+          {/* Fully functional embedded static map respecting Dark mode */}
+          <iframe 
+            title="Map Area"
+            width="100%" 
+            height="100%" 
+            frameBorder="0" 
+            scrolling="no" 
+            src="https://www.openstreetmap.org/export/embed.html?bbox=151.16%2C-33.91%2C151.21%2C-33.86&amp;layer=mapnik" 
+            style={{ border: 0, position: 'absolute', inset: 0, pointerEvents: 'none', filter: 'var(--ac-map-filter)' }}
+          />
           
-          {filtered.map(p => (
+          {filtered.map((p, idx) => (
             <div 
               key={p.id}
+              className="ac-map-marker"
               onClick={() => setSelectedProf(p)}
               style={{ 
-                position: 'absolute', left: `${p.loc[0]}%`, top: `${p.loc[1]}%`,
-                width: 14, height: 14, background: selectedProf?.id === p.id ? 'var(--ac-primary)' : 'var(--ac-success)',
-                borderRadius: '50%', cursor: 'pointer', boxShadow: '0 0 10px rgba(0,0,0,0.1)',
-                transform: 'translate(-50%, -50%)', transition: 'all 0.2s',
-                border: '2px solid white'
+                left: `${p.loc[0]}%`, 
+                top: `${p.loc[1]}%`,
+                backgroundColor: selectedProf?.id === p.id ? 'var(--ac-primary)' : 'var(--ac-success)',
+                animationDelay: `${idx * 0.1}s`
               }}
             />
           ))}
-          
+
           {selectedProf && (
             <div style={{ 
               position: 'absolute', bottom: 12, left: 12, right: 12, 
               background: 'var(--ac-surface)', padding: 12, borderRadius: 10, 
-              boxShadow: 'var(--ac-shadow-lg)', border: '1px solid var(--ac-border)' 
+              boxShadow: 'var(--ac-shadow-lg)', border: '1px solid var(--ac-border)',
+              zIndex: 10, animation: 'fadeIn 0.2s ease-out'
             }}>
-              <div style={{ fontWeight: 700 }}>{selectedProf.name}</div>
-              <div className="ac-muted ac-xs">{selectedProf.qual}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontWeight: 700 }}>{selectedProf.name}</div>
+                  <div className="ac-muted ac-xs">{selectedProf.qual}</div>
+                </div>
+                <button onClick={() => setSelectedProf(null)} style={{ background: 'none', border: 'none', color: 'var(--ac-muted)', cursor: 'pointer' }}>✕</button>
+              </div>
             </div>
           )}
         </div>
+
+        <Button 
+          variant="primary" 
+          style={{ width: '100%', padding: '14px', fontSize: '16px', display: 'flex', justifyContent: 'center' }}
+          icon={sharing ? FiIcons.FiLoader : FiMapPin}
+          onClick={handleShareLocation}
+          disabled={sharing}
+        >
+          {sharing ? "Sharing Location..." : "Share My Location"}
+        </Button>
       </Card>
 
       <div className="ac-grid-2">
         <div className="ac-stack">
-          {/* Filters below map */}
           <Card title="Filters" icon={FiFilter}>
             <div className="ac-grid-2">
               <Field label="Qualification">
