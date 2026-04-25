@@ -10,7 +10,7 @@ import { supabase } from './supabase/supabase';
 
 import { CheckInPage, ResourcesPage, ProfessionalsPage, ProviderJoinPage, SponsorJoinPage } from './pages/ClientViews';
 import { TriageDashboard, CRMPage, InvoicingPage, CrisisPage, ReportsPage, SponsorLedger, MultiCentreCheckin, BulkOffboardingPage, CrisisAnalyticsPage, FeedbackDashPage } from './pages/AdminViews';
-import { SysDashPage, IntegrationPage, SettingsPage, UsersPage, SuperAdminPage, OfficesPage, HeatMapPage, FeedbackPage, FeatureRequestPage, ProviderMetricsPage, AICodeFixerPage, GitHubAgentPage, RolloutPage } from './pages/SystemViews';
+import { OverseerDashboard, LocationRollout, IntegrationPage, SettingsPage, UsersPage, SuperAdminPage, LocationsPage, HeatMapPage, FeedbackPage, FeatureRequestPage, ProviderMetricsPage, AICodeFixerPage, GitHubAgentPage } from './pages/SystemViews';
 
 const { FiMenu, FiMoon, FiSun, FiLock, FiLogOut, FiEyeOff, FiEye, FiMail, FiKey, FiShield, FiRefreshCw, FiDownload, FiLightbulb, FiGithub, FiMapPin, FiX, FiSend } = FiIcons;
 
@@ -96,18 +96,18 @@ const PageRenderer = ({ id, goto, onLoginIntent }) => {
     case 'reports':          return <ReportsPage />;
     case 'feedback_dash':    return <FeedbackDashPage />;
     case 'heatmap':          return <HeatMapPage />;
-    case 'sysdash':          return <SysDashPage />;
+    case 'sysdash':          return <OverseerDashboard />;
     case 'feedback':         return <FeedbackPage />;
     case 'features':         return <FeatureRequestPage />;
     case 'provider_metrics': return <ProviderMetricsPage />;
-    case 'offices':          return <OfficesPage />;
+    case 'offices':          return <LocationsPage />;
     case 'integrations':     return <IntegrationPage />;
     case 'users':            return <UsersPage />;
     case 'settings':         return <SettingsPage />;
     case 'superadmin':       return <SuperAdminPage />;
     case 'ai_fixer':         return <AICodeFixerPage />;
     case 'github_agent':     return <GitHubAgentPage />;
-    case 'rollout':          return <RolloutPage />;
+    case 'rollout':          return <LocationRollout />;
     default:                 return <CheckInPage goto={goto} onLoginIntent={onLoginIntent} />;
   }
 };
@@ -126,7 +126,6 @@ const SmartMenu = ({ open, onClose, current, goto, role, onLogout, showBadges, c
     setTimeout(onClose, 30);
   }, [onLogout, onClose]);
 
-  // Per-item counters
   const getCounter = (id) => {
     if (id === 'feedback') return feedbackCount;
     if (id === 'crm') return pendingCRNCount;
@@ -156,7 +155,6 @@ const SmartMenu = ({ open, onClose, current, goto, role, onLogout, showBadges, c
             if (g.group === 'ADMIN' && !role) return false;
             return true;
           }).map(g => {
-            // Count unread items in this group
             const groupCount = g.items.reduce((sum, it) => sum + (getCounter(it.id) || 0), 0);
             return (
               <div key={g.group}>
@@ -361,10 +359,8 @@ export default function App() {
 
   useEffect(() => {
     if (!role) return;
-    // Fetch open feedback tickets
     supabase.from('feedback_tickets_1777090000').select('*', { count: 'exact', head: true }).eq('status', 'open')
       .then(({ count }) => setFeedbackCount(count || 0));
-    // Fetch pending CRN requests
     supabase.from('crn_requests_1777090006').select('*', { count: 'exact', head: true })
       .not('status', 'in', '("approved","rejected")')
       .then(({ count }) => setPendingCRNCount(count || 0));
@@ -396,7 +392,6 @@ export default function App() {
     setMenuOpen(prev => !prev);
   }, []);
 
-  // Location label
   const locationLabel = role === 'sysadmin' ? '⚡ Central Admin' : role === 'admin' ? '📍 Camperdown' : null;
 
   return (
@@ -475,7 +470,7 @@ export default function App() {
       {feedbackModalOpen && <FeedbackModal onClose={() => setFeedbackModalOpen(false)} role={role} />}
 
       <footer style={{ textAlign: 'center', padding: '20px 16px', color: 'var(--ac-muted)', fontSize: 11, borderTop: '1px solid var(--ac-border)' }}>
-        © Laurendi · Acute Connect v2.9.3 · Protected by AES-256
+        © Laurendi · Acute Connect v4.0.0 — Full Stack PWA · Protected by AES-256
       </footer>
 
       {loginModal && (

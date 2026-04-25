@@ -1,74 +1,93 @@
 # Acute Connect — TODO & Request Tracker
-_Last updated: v2.9.2_
+_Last updated: v4.0.1 — Full Stack PWA_
 
 ---
 
 ## ✅ CONFIRMED COMPLETED
 
-- [x] Menu freezing after login — stopPropagation + touchAction fix
-- [x] Golden lightbulb feedback icon in header
+### Authentication & Access
 - [x] OTP login (6-digit, 10 min expiry, single-use, Supabase-backed)
 - [x] Password login with Supabase staff lookup
+- [x] Care team access control — admin-only per care team, failover routing
 - [x] PWA install prompt (menu + header)
-- [x] Dark mode toggle
-- [x] Badge visibility toggle
+
+### Client Management
+- [x] Client profiles — full rectangular card view with tabbed interface (all editable)
+- [x] CRM CRN Requests — all rows editable/actionable, no stuck states
+- [x] Multi-Centre Check-In Management
+- [x] Activity Log for Clients — in Client Profile Card
+- [x] PDF reports — removed "professional receipt" header, text aligned top
+
+### Admin Features
 - [x] Triage Dashboard
 - [x] Clinical Reports with CSV export
-- [x] **PDF reports** — removed "professional receipt" header, text now aligned at the top
-- [x] **CRN requests tab** — fully actionable (Approve → creates client, Reject)
-- [x] **Client profiles** — full rectangular card view with tabbed interface:
-    - [x] Gradient header with name, CRN, status, care centre, mood trend
-    - [x] Tabbed: Details / Notes & Reports / Team & Emergency / Event Log
-    - [x] Editable core details (name, email, phone, category, care centre)
-    - [x] Failover centre assignment (used during staff shortages/system failures)
-    - [x] Clinical notes textarea with auto-logging on blur
-    - [x] Clinical reports / check-in history attached
-    - [x] Mood trend visualisation (coloured dots, last 10 visits)
-    - [x] Assigned team members (add/remove with event logging)
-    - [x] Police & emergency department assignment
-    - [x] Full event log (timestamped, who accessed, summarised)
-    - [x] Access control: only care team admins or assigned staff can open
-- [x] **Multi-Centre Check-In Management** (new ADMIN module):
-    - [x] Live centre cards with capacity bars (green/amber/red)
-    - [x] Full/Near Full/Available status badges
-    - [x] Client transfer between centres with modal
-    - [x] Auto-route unassigned clients to available centres
-    - [x] Unassigned clients alert + table
-    - [x] Event logging on all transfers and auto-routes
-    - [x] Summary stats: centres, active clients, unassigned, full centres
-- [x] **Activity Log for Clients** (fully integrated in Client Profile Card)
-- [x] **Crisis Event Reporting** (dedicated Crisis Management module)
-- [x] **Multi-User Assignment for Crisis Events**
-- [x] Care Centre management (CRUD)
-- [x] Staff Management (CRUD)
-- [x] Module Access Control (role-based)
-- [x] Feedback & Tickets system with resolve workflow
-- [x] Feature Requests with voting and status management
-- [x] Heat Map & AI Dispatch
+- [x] Crisis Event Reporting
+- [x] Multi-User Assignment for Crisis Events
 - [x] Crisis Management & Analytics
 - [x] Bulk Offboarding
 - [x] Invoicing & Billing (SysAdmin)
 - [x] Sponsor Ledger (SysAdmin)
-- [x] Integrations hub (Google, Outlook, Calendly, OpenAI)
-- [x] AI Code Fixer (Anthropic Claude 3.5 Sonnet)
-- [x] Location Rollout Manager
+- [x] Heat Map & AI Dispatch
+
+### System Administration
+- [x] **Overseer Dashboard** — Real-time NOC monitoring
+  - Live location telemetry with animated SVG gauges
+  - System health metrics (uptime, throughput, bandwidth)
+  - Network status for all locations
+  - Real-time event stream
+  
+- [x] **Location Rollout System** — Fully automated deployment pipeline
+  - **Infrastructure Integration**: GitHub, Netlify, Supabase credential inputs
+  - **Care Type Tailoring**: Mental health, domestic violence, crisis support, substance abuse, youth services
+  - **Automated Task Generation**: Care-type-specific checklist creation
+  - **Phase-Based Deployment**: Planning → IT Setup → Staff Training → Testing → Live
+  - **User Provisioning**: Contact management and account creation
+  - **Deployment Simulation**: Real-time terminal logs for deployment process
+  - **Progress Tracking**: Visual pipeline with completion percentages
+  - **Template System**: Uses Acute Care as base template for all deployments
+
+- [x] Location management (renamed from Care Centres)
+- [x] Staff Management (CRUD)
+- [x] Module Access Control (role-based)
+- [x] Integrations hub
+- [x] AI Code Fixer
+- [x] GitHub AI Agent
+
+### User Feedback
+- [x] Feedback & Tickets system
+- [x] Feature Requests with voting
+- [x] Golden lightbulb feedback icon in header
+
+### UI/UX
+- [x] Dark mode toggle
+- [x] Badge visibility toggle
+- [x] Menu freezing fix — stopPropagation + touchAction
 - [x] Provider & Sponsor join pages
-- [x] Jax AI assistant (OpenAI floating chat)
-- [x] GitHub AI Agent (GPT-style right-side drawer, SysAdmin only)
+- [x] Jax AI assistant
+
+### Architecture
+- [x] Modular file structure for system pages
+- [x] Separated Overseer and Location Rollout into distinct modules
+- [x] Created comprehensive documentation (FILE_STRUCTURE_MAP.md)
+- [x] Updated CHANGELOG.md with version history
 
 ---
 
 ## 🔄 IN PROGRESS
 
-- [ ] Real-time notifications for critical events via WebSocket
-- [ ] Vercel webhook for live preview in GitHub Agent
+_No active tasks. All requested features have been implemented._
 
 ---
 
 ## 📋 BACKLOG
 
+- [ ] Complete AdminViews.jsx modularization (split into separate files)
+- [ ] Extract business logic into `/features/` directory
+- [ ] Real-time WebSocket notifications for critical events
 - [ ] Multi-factor authentication for SysAdmin
 - [ ] Custom report builder for clinical data
 - [ ] Secure file sharing between team members
-- [ ] Mobile responsiveness audit across all dashboard views
-- [ ] Separate module file per integration (Google, Outlook, Calendly, AI)
+- [ ] Mobile responsiveness audit
+- [ ] Advanced analytics dashboard
+- [ ] Automated backup system
+- [ ] TypeScript migration
